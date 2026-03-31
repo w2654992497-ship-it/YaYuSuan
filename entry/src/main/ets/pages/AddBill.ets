@@ -6,7 +6,6 @@ import { DateUtil } from '../utils/DateUtil'
 import { ToastUtils } from '../utils/ToastUtils'
 import { LogUtils } from '../utils/LogUtils'
 import { CommonHintDialog } from '../components/CommonHintDialog'
-import { NavBar } from '../components/NavBar'
 
 @Component
 export struct AddBillPage {
@@ -17,7 +16,6 @@ export struct AddBillPage {
   @State selectedDate: string = DateUtil.today()
   @State remark: string = ''
 
-  // 保存成功提示弹窗
   private saveSuccessController: CustomDialogController = new CustomDialogController({
     builder: CommonHintDialog({ message: '记账成功', iconType: 'success' }),
     alignment: DialogAlignment.Center,
@@ -76,152 +74,182 @@ export struct AddBillPage {
 
   build() {
     Column() {
-      NavBar({ title: '记账', showLeft: false, showDivider: true })
+      // ── 顶部彩色区：收支切换 + 金额输入 ────────────
+      Column() {
+        // 收支切换
+        Row({ space: 4 }) {
+          Text('支出')
+            .fontSize(14)
+            .fontColor(this.billType === 'expense' ? '#FFFFFF' : 'rgba(255,255,255,0.45)')
+            .fontWeight(this.billType === 'expense' ? FontWeight.Bold : FontWeight.Normal)
+            .padding({ left: 28, right: 28, top: 8, bottom: 8 })
+            .backgroundColor(
+              this.billType === 'expense' ? 'rgba(0,0,0,0.18)' : Color.Transparent
+            )
+            .borderRadius(20)
+            .onClick(() => {
+              this.billType = 'expense'
+              this.selectedCategory = ''
+            })
 
-      Scroll() {
-        Column() {
-          // Type toggle
-          Row() {
-            Button('支出')
-              .layoutWeight(1)
-              .height(40)
-              .fontSize(15)
-              .fontColor(this.billType === 'expense' ? '#FFFFFF' : '#9E9E9E')
-              .backgroundColor(this.billType === 'expense' ? '#F44336' : '#F5F5F5')
-              .borderRadius({ topLeft: 20, bottomLeft: 20 })
-              .onClick(() => {
-                this.billType = 'expense'
-                this.selectedCategory = ''
-              })
+          Text('收入')
+            .fontSize(14)
+            .fontColor(this.billType === 'income' ? '#FFFFFF' : 'rgba(255,255,255,0.45)')
+            .fontWeight(this.billType === 'income' ? FontWeight.Bold : FontWeight.Normal)
+            .padding({ left: 28, right: 28, top: 8, bottom: 8 })
+            .backgroundColor(
+              this.billType === 'income' ? 'rgba(0,0,0,0.18)' : Color.Transparent
+            )
+            .borderRadius(20)
+            .onClick(() => {
+              this.billType = 'income'
+              this.selectedCategory = ''
+            })
+        }
+        .margin({ top: 20, bottom: 6 })
 
-            Button('收入')
-              .layoutWeight(1)
-              .height(40)
-              .fontSize(15)
-              .fontColor(this.billType === 'income' ? '#FFFFFF' : '#9E9E9E')
-              .backgroundColor(this.billType === 'income' ? '#4CAF50' : '#F5F5F5')
-              .borderRadius({ topRight: 20, bottomRight: 20 })
-              .onClick(() => {
-                this.billType = 'income'
-                this.selectedCategory = ''
-              })
+        // 金额显示 + 透明输入框叠加
+        Stack({ alignContent: Alignment.Center }) {
+          Column() {
+            Text(`¥ ${this.amountText.length > 0 ? this.amountText : '0.00'}`)
+              .fontSize(46)
+              .fontColor('#FFFFFF')
+              .fontWeight(FontWeight.Bold)
+              .textAlign(TextAlign.Center)
+              .width('100%')
+            // 输入指示下划线
+            Row()
+              .width(100)
+              .height(2)
+              .backgroundColor('rgba(255,255,255,0.45)')
+              .borderRadius(1)
+              .margin({ top: 6 })
           }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 16, bottom: 8 })
+          .alignItems(HorizontalAlign.Center)
 
-          // Amount display
-          Text(`¥ ${this.amountText.length > 0 ? this.amountText : '0.00'}`)
-            .fontSize(40)
-            .fontColor('#212121')
-            .fontWeight(FontWeight.Bold)
-            .width('100%')
-            .textAlign(TextAlign.Center)
-            .padding({ top: 16, bottom: 8 })
-
-          // Amount input (invisible, tapped via TextInput)
           TextInput({ text: this.amountText })
-            .width('80%')
-            .height(1)
+            .width('100%')
+            .height(80)
             .opacity(0.01)
+            .caretColor(Color.Transparent)
             .type(InputType.PhoneNumber)
             .onChange((value: string) => {
               let filtered = value.replace(/[^0-9.]/g, '')
               const dotIndex = filtered.indexOf('.')
               if (dotIndex !== -1) {
                 const afterDot = filtered.substring(dotIndex + 1).replace(/\./g, '')
-                const truncated = afterDot.substring(0, 2)
-                filtered = filtered.substring(0, dotIndex + 1) + truncated
+                filtered = filtered.substring(0, dotIndex + 1) + afterDot.substring(0, 2)
               }
               this.amountText = filtered
             })
+        }
+        .width('100%')
+        .height(80)
 
-          // Category grid
-          CategoryGrid({
-            billType: this.billType,
-            selected: this.selectedCategory,
-            onSelect: (category: string) => {
-              this.selectedCategory = category
+        // 日期胶囊（点击修改）
+        Row() {
+          Image($rawfile('icon_calendar.svg'))
+            .width(13)
+            .height(13)
+            .fillColor('rgba(255,255,255,0.75)')
+            .margin({ right: 5 })
+          Text(this.selectedDate)
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.75)')
+        }
+        .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+        .backgroundColor('rgba(0,0,0,0.14)')
+        .borderRadius(16)
+        .margin({ bottom: 22 })
+        .onClick(() => {
+          const parts = this.selectedDate.split('-')
+          const now = new Date()
+          DatePickerDialog.show({
+            start: new Date('2020-01-01'),
+            end: now,
+            selected: new Date(
+              parseInt(parts[0], 10),
+              parseInt(parts[1], 10) - 1,
+              parseInt(parts[2], 10)
+            ),
+            lunar: false,
+            onAccept: (value: DatePickerResult) => {
+              const y = value.year ?? now.getFullYear()
+              const m = ((value.month ?? now.getMonth()) + 1).toString().padStart(2, '0')
+              const d = (value.day ?? now.getDate()).toString().padStart(2, '0')
+              this.selectedDate = `${y}-${m}-${d}`
             }
           })
-            .margin({ top: 8, bottom: 8 })
+        })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Center)
 
-          // Date row
-          Row() {
-            Text('📅')
-              .fontSize(20)
-              .margin({ right: 8 })
-            Text(this.selectedDate)
-              .fontSize(15)
-              .fontColor('#212121')
-            Blank()
-            Text('>')
-              .fontSize(14)
-              .fontColor('#9E9E9E')
+      // ── 白色卡片区 ────────────────────────────────
+      Column() {
+        // 把手指示器
+        Row()
+          .width(32)
+          .height(4)
+          .backgroundColor('#E0E0E0')
+          .borderRadius(2)
+          .margin({ top: 10, bottom: 4 })
+
+        // 分类选择
+        CategoryGrid({
+          billType: this.billType,
+          selected: this.selectedCategory,
+          onSelect: (category: string) => {
+            this.selectedCategory = category
           }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-          .backgroundColor('#FFFFFF')
-          .borderRadius(8)
-          .margin({ left: 16, right: 16, bottom: 8 })
-          .onClick(() => {
-            const dateParts = this.selectedDate.split('-')
-            const selYear = parseInt(dateParts[0], 10)
-            const selMonth = parseInt(dateParts[1], 10) - 1
-            const selDay = parseInt(dateParts[2], 10)
-            const now = new Date()
-            DatePickerDialog.show({
-              start: new Date('2020-01-01'),
-              end: now,
-              selected: new Date(selYear, selMonth, selDay),
-              lunar: false,
-              onAccept: (value: DatePickerResult) => {
-                const y = value.year ?? now.getFullYear()
-                const m = ((value.month ?? now.getMonth()) + 1).toString().padStart(2, '0')
-                const d = (value.day ?? now.getDate()).toString().padStart(2, '0')
-                this.selectedDate = `${y}-${m}-${d}`
-              }
-            })
-          })
+        })
 
-          // Remark row
-          Row() {
-            Text('📝')
-              .fontSize(20)
-              .margin({ right: 8 })
-            TextInput({ placeholder: '备注（选填）', text: this.remark })
-              .layoutWeight(1)
-              .fontSize(15)
-              .maxLength(50)
-              .backgroundColor(Color.Transparent)
-              .onChange((value: string) => {
-                this.remark = value
-              })
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 4, bottom: 4 })
-          .backgroundColor('#FFFFFF')
-          .borderRadius(8)
-          .margin({ left: 16, right: 16, bottom: 24 })
+        Divider()
+          .color('#E0E0E0')
 
-          // Save button
-          Button('保  存')
-            .width('100%')
-            .height(48)
-            .fontSize(16)
-            .fontColor('#FFFFFF')
-            .backgroundColor('#1976D2')
-            .borderRadius(24)
-            .margin({ left: 16, right: 16, bottom: 24 })
-            .onClick(() => {
-              this.onSave()
+        // 备注行
+        Row() {
+          Image($rawfile('icon_edit.svg'))
+            .width(17)
+            .height(17)
+            .fillColor('#757575')
+            .margin({ right: 10 })
+          TextInput({ placeholder: '备注（选填）', text: this.remark })
+            .layoutWeight(1)
+            .fontSize(14)
+            .maxLength(50)
+            .backgroundColor(Color.Transparent)
+            .placeholderColor('#757575')
+            .onChange((value: string) => {
+              this.remark = value
             })
         }
         .width('100%')
+        .padding({ top: 4, bottom: 4 })
+
+        Blank()
+
+        // 保存按钮
+        Button('保  存')
+          .width('100%')
+          .height(48)
+          .fontSize(16)
+          .fontColor('#FFFFFF')
+          .backgroundColor('#1976D2')
+          .borderRadius(24)
+          .margin({ bottom: 20 })
+          .onClick(() => { this.onSave() })
       }
+      .width('100%')
       .layoutWeight(1)
+      .backgroundColor('#FFFFFF')
+      .borderRadius({ topLeft: 24, topRight: 24 })
+      .padding({ left: 16, right: 16 })
+      .clip(true)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.color_bg'))
+    .backgroundColor(this.billType === 'expense' ? '#E53935' : '#43A047')
+    .animation({ duration: 300, curve: Curve.EaseInOut })
   }
 }

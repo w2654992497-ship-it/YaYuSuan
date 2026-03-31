@@ -38,13 +38,13 @@ struct Index {
       Image($rawfile(item.icon + '.svg'))
         .width(24)
         .height(24)
-        .fillColor(this.currentTabIndex === item.index ? '#1976D2' : '#BDBDBD')
+        .fillColor(this.currentTabIndex === item.index ? '#1976D2' : '#757575')
         .animation({ duration: 200, curve: Curve.EaseOut })
 
       // 文字
       Text(item.label)
         .fontSize(10)
-        .fontColor(this.currentTabIndex === item.index ? '#1976D2' : '#BDBDBD')
+        .fontColor(this.currentTabIndex === item.index ? '#1976D2' : '#757575')
         .margin({ top: 4 })
         .animation({ duration: 200, curve: Curve.EaseOut })
     }

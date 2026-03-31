@@ -15,51 +15,40 @@ export struct CategoryGrid {
       ForEach(this.getCategories(), (item: CategoryInfo) => {
         GridItem() {
           Column() {
-            // 图标圆圈
             Column() {
               Image($rawfile(item.icon + '.svg'))
-                .width(24)
-                .height(24)
-                .fillColor(this.selected === item.name ? '#FFFFFF' : item.color)
+                .width(20)
+                .height(20)
+                .fillColor(this.selected === item.name ? '#1976D2' : '#757575')
             }
-            .width(50)
-            .height(50)
-            .borderRadius(25)
-            .backgroundColor(
-              this.selected === item.name
-                ? item.color
-                : item.color + '22'   // 13% 透明度背景
-            )
+            .width(40)
+            .height(40)
+            .borderRadius(20)
+            .backgroundColor(this.selected === item.name ? '#E3F2FD' : '#F5F5F5')
             .alignItems(HorizontalAlign.Center)
             .justifyContent(FlexAlign.Center)
-            .margin({ bottom: 6 })
-            .shadow(this.selected === item.name
-              ? { radius: 8, color: item.color + '55', offsetX: 0, offsetY: 3 }
-              : { radius: 0, color: '#00000000', offsetX: 0, offsetY: 0 })
+            .border(this.selected === item.name
+              ? { width: 1.5, color: '#1976D2' }
+              : { width: 0 })
 
-            // 分类名
             Text(item.name)
               .fontSize(11)
-              .fontColor(this.selected === item.name ? item.color : '#666666')
+              .fontColor(this.selected === item.name ? '#1976D2' : '#757575')
               .fontWeight(this.selected === item.name ? FontWeight.Medium : FontWeight.Normal)
+              .margin({ top: 4 })
           }
           .width('100%')
-          .padding({ top: 10, bottom: 10 })
+          .padding({ top: 8, bottom: 8 })
           .alignItems(HorizontalAlign.Center)
-          .borderRadius(10)
-          .backgroundColor(this.selected === item.name ? item.color + '10' : Color.Transparent)
-          .border(this.selected === item.name
-            ? { width: 1.5, color: item.color + '80' }
-            : { width: 0 })
           .onClick(() => {
             this.onSelect(item.name)
           })
         }
-        .padding(4)
+        .padding({ left: 4, right: 4 })
       })
     }
     .columnsTemplate('1fr 1fr 1fr 1fr')
     .width('100%')
-    .padding({ left: 12, right: 12 })
+    .padding({ left: 8, right: 8 })
   }
 }

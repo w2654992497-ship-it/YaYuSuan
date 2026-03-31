@@ -39,7 +39,7 @@ export struct BarChart {
 
     if (!this.data || this.data.length === 0) {
       // Empty state
-      ctx.fillStyle = '#9E9E9E'
+      ctx.fillStyle = '#757575'
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -78,7 +78,7 @@ export struct BarChart {
       ctx.setLineDash([])
 
       // Y axis label
-      ctx.fillStyle = '#9E9E9E'
+      ctx.fillStyle = '#757575'
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'right'
       ctx.textBaseline = 'middle'
@@ -116,7 +116,7 @@ export struct BarChart {
       // X axis label
       const monthParts = stat.month.split('-')
       const monthLabel = `${parseInt(monthParts[1], 10)}月`
-      ctx.fillStyle = '#9E9E9E'
+      ctx.fillStyle = '#757575'
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'

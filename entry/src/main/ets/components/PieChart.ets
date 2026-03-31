@@ -37,7 +37,7 @@ export struct PieChart {
       ctx.fill()
 
       // No data text
-      ctx.fillStyle = '#9E9E9E'
+      ctx.fillStyle = '#757575'
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
@@ -85,7 +85,7 @@ export struct PieChart {
     ctx.fillText(`¥${AmountUtil.fen2Display(total)}`, cx, cy - 10)
 
     // Center label
-    ctx.fillStyle = '#9E9E9E'
+    ctx.fillStyle = '#757575'
     ctx.font = '12px sans-serif'
     ctx.fillText('总支出', cx, cy + 14)
   }
