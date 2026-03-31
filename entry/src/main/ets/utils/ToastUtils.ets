@@ -3,7 +3,7 @@ import { promptAction } from '@kit.ArkUI'
 export class ToastUtils {
   static showShort(message: string): void {
     try {
-      promptAction.showToast({ message: message, duration: 2000 })
+      promptAction.openToast({ message: message, duration: 2000 })
     } catch {
       // ignore
     }
@@ -11,7 +11,7 @@ export class ToastUtils {
 
   static showLong(message: string): void {
     try {
-      promptAction.showToast({ message: message, duration: 3500 })
+      promptAction.openToast({ message: message, duration: 3500 })
     } catch {
       // ignore
     }

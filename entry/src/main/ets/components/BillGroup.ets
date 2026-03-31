@@ -22,11 +22,48 @@ export struct BillGroup {
     return `¥0.00`
   }
 
+  // 删除操作滑出区域（swipeAction 需要 ListItem，已在 List 内）
+  @Builder
+  DeleteBuilder(bill: Bill) {
+    Column() {
+      Image($rawfile('icon_other.svg'))
+        .width(20)
+        .height(20)
+        .fillColor('#FFFFFF')
+        .margin({ bottom: 4 })
+      Text('删除')
+        .fontSize(12)
+        .fontColor('#FFFFFF')
+    }
+    .width(72)
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .backgroundColor('#F44336')
+    .onClick(() => {
+      AlertDialog.show({
+        title: '删除账单',
+        message: `确认删除「${bill.category}」这条记录吗？`,
+        primaryButton: {
+          value: '取消',
+          fontColor: '#1976D2',
+          action: () => {}
+        },
+        secondaryButton: {
+          value: '删除',
+          fontColor: '#F44336',
+          action: () => { this.onDeleteBill(bill.id) }
+        },
+        alignment: DialogAlignment.Bottom,
+        offset: { dx: 0, dy: -20 }
+      })
+    })
+  }
+
   build() {
     Column() {
       // 日期头
       Row() {
-        // 左侧日期标签
         Row() {
           Text(DateUtil.friendlyDate(this.date))
             .fontSize(12)
@@ -39,7 +76,6 @@ export struct BillGroup {
 
         Blank()
 
-        // 右侧当日净额
         Text(this.getDayNetDisplay())
           .fontSize(13)
           .fontColor(this.getDayNet() >= 0 ? '#4CAF50' : '#F44336')
@@ -48,23 +84,29 @@ export struct BillGroup {
       .width('100%')
       .padding({ left: 14, right: 14, top: 10, bottom: 10 })
 
-      // 分隔线
       Divider()
         .color('#F0F0F0')
         .margin({ left: 14, right: 14 })
 
-      // 账单列表
-      ForEach(this.bills, (bill: Bill, index: number) => {
-        BillItem({
-          bill: bill,
-          onDelete: (id: number) => { this.onDeleteBill(id) }
-        })
-        if (index < this.bills.length - 1) {
-          Divider()
-            .color('#F5F5F5')
-            .margin({ left: 70 })  // 缩进对齐文字区域
-        }
+      // 账单列表：用 List+ListItem 支持 swipeAction
+      List() {
+        ForEach(this.bills, (bill: Bill) => {
+          ListItem() {
+            BillItem({
+              bill: bill,
+              onDelete: (id: number) => { this.onDeleteBill(id) }
+            })
+          }
+          .swipeAction({ end: () => { this.DeleteBuilder(bill) } })
+        }, (bill: Bill) => bill.id.toString())
+      }
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.None)
+      .nestedScroll({
+        scrollForward: NestedScrollMode.PARENT_FIRST,
+        scrollBackward: NestedScrollMode.SELF_FIRST
       })
+      .divider({ strokeWidth: 0.5, color: '#F5F5F5', startMargin: 70 })
     }
     .width('100%')
     .backgroundColor('#FFFFFF')
