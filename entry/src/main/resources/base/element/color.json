@@ -3,6 +3,46 @@
     {
       "name": "start_window_background",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "color_income",
+      "value": "#4CAF50"
+    },
+    {
+      "name": "color_expense",
+      "value": "#F44336"
+    },
+    {
+      "name": "color_primary",
+      "value": "#1976D2"
+    },
+    {
+      "name": "color_surface",
+      "value": "#F5F5F5"
+    },
+    {
+      "name": "color_bg",
+      "value": "#FAFAFA"
+    },
+    {
+      "name": "color_card",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "color_text_primary",
+      "value": "#212121"
+    },
+    {
+      "name": "color_text_secondary",
+      "value": "#9E9E9E"
+    },
+    {
+      "name": "color_divider",
+      "value": "#E0E0E0"
+    },
+    {
+      "name": "color_tab_inactive",
+      "value": "#9E9E9E"
     }
   ]
 }
