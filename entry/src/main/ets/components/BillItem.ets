@@ -1,5 +1,5 @@
 import { Bill } from '../model/Bill'
-import { getCategoryInfo, CategoryInfo } from '../model/Category'
+import { getCategoryInfo } from '../model/Category'
 import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
 
@@ -10,43 +10,6 @@ export struct BillItem {
     category: '', remark: '', date: '', createdAt: 0
   }
   onDelete: (id: number) => void = () => {}
-
-  @Builder
-  deleteBuilder() {
-    Column() {
-      Image($rawfile('icon_other.svg'))
-        .width(20)
-        .height(20)
-        .fillColor('#FFFFFF')
-        .margin({ bottom: 4 })
-      Text('删除')
-        .fontSize(12)
-        .fontColor('#FFFFFF')
-    }
-    .width(72)
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor('#F44336')
-    .onClick(() => {
-      AlertDialog.show({
-        title: '删除账单',
-        message: `确认删除「${this.bill.category}」这条记录吗？`,
-        primaryButton: {
-          value: '取消',
-          fontColor: '#1976D2',
-          action: () => {}
-        },
-        secondaryButton: {
-          value: '删除',
-          fontColor: '#F44336',
-          action: () => { this.onDelete(this.bill.id) }
-        },
-        alignment: DialogAlignment.Bottom,
-        offset: { dx: 0, dy: -20 }
-      })
-    })
-  }
 
   build() {
     Row() {
@@ -102,6 +65,5 @@ export struct BillItem {
     .padding({ left: 0, right: 16 })
     .backgroundColor('#FFFFFF')
     .alignItems(VerticalAlign.Center)
-    .swipeAction({ end: this.deleteBuilder })
   }
 }

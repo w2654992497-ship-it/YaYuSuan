@@ -142,7 +142,7 @@ export struct StatisticsPage {
               placement: Placement.BottomRight,
               popupColor: Color.Transparent,
               enableArrow: false,
-              onStateChange: (e: PopupStateChangeEvent) => {
+              onStateChange: (e: { isVisible: boolean }) => {
                 this.showChartMenu = e.isVisible
               }
             })

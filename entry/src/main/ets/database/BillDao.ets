@@ -38,7 +38,7 @@ export class BillDao {
       return rowId
     } catch (err) {
       LogUtils.error('BillDao', 'insert failed: %{public}s', JSON.stringify(err))
-      throw err
+      throw new Error(String(err))
     }
   }
 
@@ -51,7 +51,7 @@ export class BillDao {
       LogUtils.info('BillDao', 'Deleted bill id=%{public}d', String(id))
     } catch (err) {
       LogUtils.error('BillDao', 'deleteById failed: %{public}s', JSON.stringify(err))
-      throw err
+      throw new Error(String(err))
     }
   }
 

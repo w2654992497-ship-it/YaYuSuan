@@ -41,7 +41,7 @@ export class DBHelper {
       hilog.info(DOMAIN, TAG, 'Database initialized successfully')
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'Failed to initialize database: %{public}s', JSON.stringify(err))
-      throw err
+      throw new Error(String(err))
     }
   }
 
