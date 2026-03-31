@@ -11,6 +11,10 @@ import { NavBar } from '../components/NavBar'
 import { PopupMenuContent } from '../components/PopupMenu'
 import { PopupMenuItem } from '../components/PopupMenu'
 
+interface PopupChangeEvent {
+  isVisible: boolean
+}
+
 @Component
 export struct StatisticsPage {
   @State currentMonth: string = DateUtil.currentMonth()
@@ -142,7 +146,7 @@ export struct StatisticsPage {
               placement: Placement.BottomRight,
               popupColor: Color.Transparent,
               enableArrow: false,
-              onStateChange: (e: { isVisible: boolean }) => {
+              onStateChange: (e: PopupChangeEvent) => {
                 this.showChartMenu = e.isVisible
               }
             })
