@@ -1,6 +1,7 @@
 import { Bill } from '../model/Bill'
 import { getCategoryInfo, CategoryInfo } from '../model/Category'
 import { AmountUtil } from '../utils/AmountUtil'
+import { DateUtil } from '../utils/DateUtil'
 
 @Component
 export struct BillItem {
@@ -28,7 +29,22 @@ export struct BillItem {
     .alignItems(HorizontalAlign.Center)
     .backgroundColor('#F44336')
     .onClick(() => {
-      this.onDelete(this.bill.id)
+      AlertDialog.show({
+        title: '删除账单',
+        message: `确认删除「${this.bill.category}」这条记录吗？`,
+        primaryButton: {
+          value: '取消',
+          fontColor: '#1976D2',
+          action: () => {}
+        },
+        secondaryButton: {
+          value: '删除',
+          fontColor: '#F44336',
+          action: () => { this.onDelete(this.bill.id) }
+        },
+        alignment: DialogAlignment.Bottom,
+        offset: { dx: 0, dy: -20 }
+      })
     })
   }
 
@@ -64,13 +80,13 @@ export struct BillItem {
           .fontColor('#212121')
           .fontWeight(FontWeight.Medium)
           .maxLines(1)
-        if (this.bill.remark && this.bill.remark.length > 0) {
-          Text(this.bill.remark)
-            .fontSize(12)
-            .fontColor('#9E9E9E')
-            .maxLines(1)
-            .margin({ top: 3 })
-        }
+        Text(this.bill.remark && this.bill.remark.length > 0
+          ? this.bill.remark
+          : DateUtil.getRelativeTime(this.bill.createdAt))
+          .fontSize(12)
+          .fontColor('#9E9E9E')
+          .maxLines(1)
+          .margin({ top: 3 })
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
