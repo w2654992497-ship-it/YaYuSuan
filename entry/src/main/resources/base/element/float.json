@@ -3,6 +3,30 @@
     {
       "name": "page_text_font_size",
       "value": "50fp"
+    },
+    {
+      "name": "font_amount_large",
+      "value": "48fp"
+    },
+    {
+      "name": "font_title",
+      "value": "20fp"
+    },
+    {
+      "name": "font_body",
+      "value": "16fp"
+    },
+    {
+      "name": "font_caption",
+      "value": "12fp"
+    },
+    {
+      "name": "border_radius_card",
+      "value": "12vp"
+    },
+    {
+      "name": "padding_page",
+      "value": "16vp"
     }
   ]
 }

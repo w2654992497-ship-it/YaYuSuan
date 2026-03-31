@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/shadow/.ssh/**)",
+      "Bash(ssh-add -l)",
+      "Bash(ssh-keygen -lf ~/.ssh/id_rsa.pub)",
+      "Bash(ssh-keygen -t ed25519 -C \"deploy-yayusuan\" -f ~/.ssh/id_ed25519_yayusuan -N \"\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "Bash(ssh:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

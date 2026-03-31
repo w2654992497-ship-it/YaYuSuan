@@ -10,7 +10,19 @@
     },
     {
       "name": "EntryAbility_label",
-      "value": "label"
+      "value": "鸭鱼算"
+    },
+    {
+      "name": "tab_bills",
+      "value": "账单"
+    },
+    {
+      "name": "tab_add",
+      "value": "记账"
+    },
+    {
+      "name": "tab_stats",
+      "value": "统计"
     }
   ]
 }
