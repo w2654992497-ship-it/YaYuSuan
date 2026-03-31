@@ -85,7 +85,7 @@ export struct BillGroup {
       .padding({ left: 14, right: 14, top: 10, bottom: 10 })
 
       Divider()
-        .color('#F0F0F0')
+        .color('#E0E0E0')
         .margin({ left: 14, right: 14 })
 
       // 账单列表：用 List+ListItem 支持 swipeAction

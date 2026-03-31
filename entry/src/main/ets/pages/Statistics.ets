@@ -8,8 +8,6 @@ import { SummaryCard } from '../components/SummaryCard'
 import { PieChart } from '../components/PieChart'
 import { BarChart } from '../components/BarChart'
 import { NavBar } from '../components/NavBar'
-import { PopupMenuContent } from '../components/PopupMenu'
-import { PopupMenuItem } from '../components/PopupMenu'
 
 interface PopupChangeEvent {
   isVisible: boolean
@@ -73,32 +71,31 @@ export struct StatisticsPage {
   }
 
   @Builder
-  ChartMenuBuilder() {
-    PopupMenuContent({
-      items: [
-        {
-          text: '支出分布',
-          color: this.chartType === 'pie' ? '#64B5F6' : '#FFFFFF',
-          onClick: () => {
-            this.chartType = 'pie'
-            this.showChartMenu = false
-          }
-        } as PopupMenuItem,
-        {
-          text: '收支趋势',
-          color: this.chartType === 'bar' ? '#64B5F6' : '#FFFFFF',
-          onClick: () => {
-            this.chartType = 'bar'
-            this.showChartMenu = false
-          }
-        } as PopupMenuItem
-      ]
-    })
+  ChartToggle() {
+    Row({ space: 6 }) {
+      Text('支出分布')
+        .fontSize(13)
+        .fontColor(this.chartType === 'pie' ? '#1976D2' : '#757575')
+        .fontWeight(this.chartType === 'pie' ? FontWeight.Medium : FontWeight.Normal)
+        .backgroundColor(this.chartType === 'pie' ? '#E3F2FD' : '#F5F5F5')
+        .borderRadius(16)
+        .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+        .onClick(() => { this.chartType = 'pie' })
+
+      Text('收支趋势')
+        .fontSize(13)
+        .fontColor(this.chartType === 'bar' ? '#1976D2' : '#757575')
+        .fontWeight(this.chartType === 'bar' ? FontWeight.Medium : FontWeight.Normal)
+        .backgroundColor(this.chartType === 'bar' ? '#E3F2FD' : '#F5F5F5')
+        .borderRadius(16)
+        .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+        .onClick(() => { this.chartType = 'bar' })
+    }
   }
 
   build() {
     Column() {
-      // 月份导航栏（NavBar 复用）
+      // 月份导航
       NavBar({
         title: DateUtil.formatMonthDisplay(this.currentMonth),
         leftText: '‹',
@@ -118,64 +115,42 @@ export struct StatisticsPage {
 
       Scroll() {
         Column() {
-          // Summary card
+          // 汇总卡片
           SummaryCard({ income: this.incomeTotal, expense: this.expenseTotal })
 
-          // 图表类型切换行（PopupMenu）
+          // 图表类型切换
           Row() {
             Text(this.chartType === 'pie' ? '支出分布' : '收支趋势')
               .fontSize(15)
               .fontColor('#212121')
               .fontWeight(FontWeight.Medium)
               .layoutWeight(1)
-
-            // "切换图表" 按钮 + PopupMenu
-            Row() {
-              Text('切换')
-                .fontSize(13)
-                .fontColor('#1976D2')
-              Text(' ▾')
-                .fontSize(11)
-                .fontColor('#1976D2')
-            }
-            .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-            .backgroundColor('#E3F2FD')
-            .borderRadius(12)
-            .bindPopup(this.showChartMenu, {
-              builder: this.ChartMenuBuilder,
-              placement: Placement.BottomRight,
-              popupColor: Color.Transparent,
-              enableArrow: false,
-              onStateChange: (e: PopupChangeEvent) => {
-                this.showChartMenu = e.isVisible
-              }
-            })
-            .onClick(() => { this.showChartMenu = true })
+            this.ChartToggle()
           }
           .width('100%')
-          .padding({ left: 16, right: 16, top: 10, bottom: 6 })
+          .padding({ left: 16, right: 16, top: 12, bottom: 8 })
 
           Divider()
             .color('#E0E0E0')
             .margin({ left: 16, right: 16 })
 
           if (this.chartType === 'pie') {
-            // Pie chart
+            // 饼图
             Column() {
               PieChart({ data: this.categoryStats })
                 .margin({ top: 8 })
 
-              // Legend
+              // 分类明细
               if (this.categoryStats.length > 0) {
                 Column() {
                   ForEach(this.categoryStats, (stat: CategoryStat) => {
                     Row() {
                       Column()
-                        .width(12)
-                        .height(12)
+                        .width(10)
+                        .height(10)
                         .backgroundColor(stat.color)
                         .borderRadius(2)
-                        .margin({ right: 8 })
+                        .margin({ right: 10 })
 
                       Text(stat.category)
                         .fontSize(14)
@@ -189,12 +164,12 @@ export struct StatisticsPage {
 
                       Text(`${stat.percent}%`)
                         .fontSize(12)
-                        .fontColor('#9E9E9E')
+                        .fontColor('#757575')
                         .width(40)
                         .textAlign(TextAlign.End)
                     }
                     .width('100%')
-                    .padding({ top: 8, bottom: 8 })
+                    .padding({ top: 10, bottom: 10 })
 
                     Divider().color('#E0E0E0')
                   })
@@ -208,7 +183,7 @@ export struct StatisticsPage {
                 Column() {
                   Text('本月暂无支出记录')
                     .fontSize(14)
-                    .fontColor('#9E9E9E')
+                    .fontColor('#757575')
                     .padding({ top: 16, bottom: 16 })
                 }
                 .width('100%')
@@ -217,7 +192,7 @@ export struct StatisticsPage {
             }
             .width('100%')
           } else {
-            // Bar chart
+            // 柱状图
             Column() {
               BarChart({ data: this.monthStats })
                 .margin({ top: 8, bottom: 16 })

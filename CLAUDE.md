@@ -378,7 +378,7 @@ CREATE TABLE IF NOT EXISTS bills (
 | `color_expense` | 支出金额文字 | `#F44336` |
 | `color_primary` | 主题色 | `#1976D2` |
 | `color_surface` | 卡片背景 | `#F5F5F5` |
-| `color_text_secondary` | 次要文字 | `#9E9E9E` |
+| `color_text_secondary` | 次要文字 | `#757575` |
 
 ### 字体尺寸（float.json）—— 需扩充
 
@@ -389,6 +389,48 @@ CREATE TABLE IF NOT EXISTS bills (
 | `font_title` | 页面标题 | `20fp` |
 | `font_body` | 正文 | `16fp` |
 | `font_caption` | 辅助文字 | `12fp` |
+
+---
+
+## 设计规范
+
+### 调色板（Design Token）
+
+全局只允许使用下表中的颜色，禁止在 `.ets` 中出现其他颜色字符串（Canvas 绘图除外）。
+
+| Token | 色值 | 用途 |
+|-------|------|------|
+| Primary | `#1976D2` | 主按钮、激活状态、链接、焦点环 |
+| Surface | `#FFFFFF` | 卡片背景、导航栏、弹窗背景 |
+| Background | `#F5F5F5` | 页面底色、未激活 Chip 背景 |
+| Text Primary | `#212121` | 主要文字 |
+| Text Secondary | `#757575` | 辅助文字、占位符、未激活图标 |
+| Divider | `#E0E0E0` | 分割线、边框 |
+| Income | `#4CAF50` | 收入金额、收入相关正向状态 |
+| Expense | `#F44336` | 支出金额、删除/危险操作 |
+| Primary Tint | `#E3F2FD` | 筛选按钮/切换按钮的浅蓝背景 |
+| Primary Light | `#64B5F6` | 深色弹出菜单中的选中高亮文字 |
+
+**灰色约束**：只允许 `#757575`（次要文字/图标）和 `#E0E0E0`（分割线）两种灰色。
+禁止使用：`#9E9E9E`、`#BDBDBD`、`#666666`、`#EEEEEE`、`#F0F0F0`。
+
+### 图标规范
+
+- 图标格式：Material Design SVG，存放于 `rawfile/`，文件名 `icon_*.svg`
+- SVG 文件不含 `fill` 属性，颜色通过 `.fillColor()` 动态设置
+- 激活/主色图标：`#1976D2`；未激活/辅助图标：`#757575`；危险操作图标：`#F44336`
+- 功能图标尺寸：`20×20`；底部导航图标：`24×24`；空状态插图：`64×64`
+
+### 字体层级
+
+| 层级 | 字号 | 字重 | 颜色 | 用途 |
+|------|------|------|------|------|
+| 大金额 | 40fp | Bold | Text Primary | 录入页金额显示 |
+| 标题 | 17fp | Medium | Text Primary | 导航栏标题 |
+| 正文 | 15fp | Normal | Text Primary | 列表项主文字 |
+| 辅助 | 13fp | Normal | Text Secondary | 筛选项、标签 |
+| 说明 | 12fp | Normal | Text Secondary | 日期、占比、提示 |
+| 极小 | 10–11fp | Normal | Text Secondary | 底部导航文字、分类名 |
 
 ---
 

@@ -40,7 +40,7 @@ export struct FilterBar {
     Text(label)
       .fontSize(12)
       .fontColor(this.filter.type === type ? '#FFFFFF' : '#757575')
-      .backgroundColor(this.filter.type === type ? '#1976D2' : '#EEEEEE')
+      .backgroundColor(this.filter.type === type ? '#1976D2' : '#F5F5F5')
       .borderRadius(14)
       .padding({ left: 14, right: 14, top: 6, bottom: 6 })
       .onClick(() => {

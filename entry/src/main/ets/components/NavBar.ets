@@ -74,11 +74,11 @@ export struct NavBar {
           if (this.rightIcon !== undefined) {
             Image(this.rightIcon)
               .width(20).height(20)
-              .fillColor(this.rightEnabled ? this.accentColor : '#BDBDBD')
+              .fillColor(this.rightEnabled ? this.accentColor : '#757575')
           } else if (this.rightText.length > 0) {
             Text(this.rightText)
               .fontSize(18)
-              .fontColor(this.rightEnabled ? this.accentColor : '#BDBDBD')
+              .fontColor(this.rightEnabled ? this.accentColor : '#757575')
               .fontWeight(FontWeight.Medium)
           }
         }

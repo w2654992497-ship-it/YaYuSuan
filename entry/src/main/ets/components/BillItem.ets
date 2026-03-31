@@ -47,7 +47,7 @@ export struct BillItem {
           ? this.bill.remark
           : DateUtil.getRelativeTime(this.bill.createdAt))
           .fontSize(12)
-          .fontColor('#9E9E9E')
+          .fontColor('#757575')
           .maxLines(1)
           .margin({ top: 3 })
       }

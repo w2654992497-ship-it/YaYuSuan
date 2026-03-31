@@ -3,9 +3,10 @@ import { FilterOptions, createDefaultFilter } from '../model/FilterOptions'
 import { BillGroupData } from '../model/StatResult'
 import { BillDao } from '../database/BillDao'
 import { SummaryCard } from '../components/SummaryCard'
-import { FilterBar } from '../components/FilterBar'
 import { BillGroup } from '../components/BillGroup'
+import { NavBar } from '../components/NavBar'
 import { LazyForEachDataSource } from '../utils/LazyForEachDataSource'
+import { DateUtil } from '../utils/DateUtil'
 import { LogUtils } from '../utils/LogUtils'
 
 @Component
@@ -16,7 +17,6 @@ export struct BillListPage {
   @State totalIncome: number = 0
   @State totalExpense: number = 0
   @State isLoading: boolean = false
-  // LazyForEachDataSource 管理分组列表，差量更新避免滑动删除后全量重建
   private billGroupsDS: LazyForEachDataSource<BillGroupData> = new LazyForEachDataSource<BillGroupData>([])
 
   onTabChanged(): void {
@@ -27,6 +27,25 @@ export struct BillListPage {
 
   aboutToAppear(): void {
     this.loadData()
+  }
+
+  @Builder
+  TypeChip(label: string, chipType: 'all' | 'income' | 'expense') {
+    Text(label)
+      .fontSize(13)
+      .fontColor(this.filter.type === chipType ? '#1976D2' : '#757575')
+      .fontWeight(this.filter.type === chipType ? FontWeight.Medium : FontWeight.Normal)
+      .backgroundColor(this.filter.type === chipType ? '#E3F2FD' : '#F5F5F5')
+      .borderRadius(16)
+      .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+      .onClick(() => {
+        this.filter = {
+          month: this.filter.month,
+          type: chipType,
+          category: this.filter.category
+        }
+        this.loadData()
+      })
   }
 
   private groupByDate(bills: Bill[]): BillGroupData[] {
@@ -80,7 +99,6 @@ export struct BillListPage {
       this.totalExpense = expense
 
       const newGroups = this.groupByDate(bills)
-      // 差量更新：key = 日期，指纹 = 日期+账单ID列表，只有变化的分组才触发组件重建
       this.billGroupsDS.smartUpdate(
         newGroups,
         (g: BillGroupData) => g.date,
@@ -104,16 +122,49 @@ export struct BillListPage {
 
   build() {
     Column() {
-      SummaryCard({ income: this.totalIncome, expense: this.totalExpense })
-
-      FilterBar({
-        filter: this.filter,
-        onFilterChange: (newFilter: FilterOptions) => {
-          this.filter = newFilter
+      // 月份导航
+      NavBar({
+        title: DateUtil.formatMonthDisplay(this.filter.month),
+        leftText: '‹',
+        rightText: '›',
+        rightEnabled: !DateUtil.isCurrentMonth(this.filter.month),
+        showDivider: false,
+        navHeight: 48,
+        onLeftClick: () => {
+          this.filter = {
+            month: DateUtil.getPrevMonth(this.filter.month),
+            type: this.filter.type,
+            category: this.filter.category
+          }
+          this.loadData()
+        },
+        onRightClick: () => {
+          this.filter = {
+            month: DateUtil.getNextMonth(this.filter.month),
+            type: this.filter.type,
+            category: this.filter.category
+          }
           this.loadData()
         }
       })
 
+      // 汇总卡片
+      SummaryCard({ income: this.totalIncome, expense: this.totalExpense })
+
+      // 收支筛选
+      Row({ space: 8 }) {
+        this.TypeChip('全部', 'all')
+        this.TypeChip('收入', 'income')
+        this.TypeChip('支出', 'expense')
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+
+      Divider()
+        .color('#E0E0E0')
+        .margin({ left: 16, right: 16 })
+
+      // 内容区
       if (this.isLoading) {
         Column() {
           LoadingProgress()
@@ -127,12 +178,14 @@ export struct BillListPage {
         .alignItems(HorizontalAlign.Center)
       } else if (this.billGroupsDS.totalCount() === 0) {
         Column() {
-          Text('🧾')
-            .fontSize(64)
-            .margin({ bottom: 16 })
+          Image($rawfile('icon_tab_bills.svg'))
+            .width(64)
+            .height(64)
+            .fillColor('#E0E0E0')
+            .margin({ bottom: 12 })
           Text('暂无账单记录')
-            .fontSize(16)
-            .fontColor('#9E9E9E')
+            .fontSize(15)
+            .fontColor('#757575')
         }
         .width('100%')
         .layoutWeight(1)
