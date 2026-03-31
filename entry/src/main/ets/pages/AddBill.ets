@@ -1,9 +1,10 @@
-import { promptAction } from '@kit.ArkUI'
 import { Bill } from '../model/Bill'
 import { BillDao } from '../database/BillDao'
 import { CategoryGrid } from '../components/CategoryGrid'
 import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
+import { ToastUtils } from '../utils/ToastUtils'
+import { LogUtils } from '../utils/LogUtils'
 
 @Component
 export struct AddBillPage {
@@ -24,16 +25,16 @@ export struct AddBillPage {
 
   private async onSave(): Promise<void> {
     if (!this.amountText || this.amountText.length === 0) {
-      promptAction.showToast({ message: '请输入金额' })
+      ToastUtils.warning('请输入金额')
       return
     }
     const fen = AmountUtil.yuan2Fen(this.amountText)
     if (fen <= 0) {
-      promptAction.showToast({ message: '金额必须大于0' })
+      ToastUtils.warning('金额必须大于0')
       return
     }
     if (!this.selectedCategory || this.selectedCategory.length === 0) {
-      promptAction.showToast({ message: '请选择分类' })
+      ToastUtils.warning('请选择分类')
       return
     }
 
@@ -50,12 +51,12 @@ export struct AddBillPage {
     try {
       await BillDao.getInstance().insert(bill)
       AppStorage.set('needRefresh', true)
-      promptAction.showToast({ message: '记账成功' })
+      ToastUtils.success('记账成功')
       this.resetForm()
       this.activeTabIndex = 0
     } catch (err) {
-      promptAction.showToast({ message: '保存失败，请重试' })
-      console.error('AddBill onSave error:', JSON.stringify(err))
+      ToastUtils.error('保存失败，请重试')
+      LogUtils.error('AddBill', 'onSave error: %{public}s', JSON.stringify(err))
     }
   }
 
@@ -94,14 +95,11 @@ export struct AddBillPage {
         // Amount display
         Text(`¥ ${this.amountText.length > 0 ? this.amountText : '0.00'}`)
           .fontSize(40)
-          .fontColor('#212121') // color_text_primary
+          .fontColor('#212121')
           .fontWeight(FontWeight.Bold)
           .width('100%')
           .textAlign(TextAlign.Center)
           .padding({ top: 16, bottom: 8 })
-          .onClick(() => {
-            // Focus handled by TextInput below
-          })
 
         // Amount input (invisible, tapped via TextInput)
         TextInput({ text: this.amountText })
@@ -110,7 +108,6 @@ export struct AddBillPage {
           .opacity(0.01)
           .type(InputType.PhoneNumber)
           .onChange((value: string) => {
-            // Allow digits and one decimal point
             let filtered = value.replace(/[^0-9.]/g, '')
             const dotIndex = filtered.indexOf('.')
             if (dotIndex !== -1) {
@@ -138,15 +135,15 @@ export struct AddBillPage {
             .margin({ right: 8 })
           Text(this.selectedDate)
             .fontSize(15)
-            .fontColor('#212121') // color_text_primary
+            .fontColor('#212121')
           Blank()
           Text('>')
             .fontSize(14)
-            .fontColor('#9E9E9E') // color_text_secondary
+            .fontColor('#9E9E9E')
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-        .backgroundColor('#FFFFFF') // color_card
+        .backgroundColor('#FFFFFF')
         .borderRadius(8)
         .margin({ left: 16, right: 16, bottom: 8 })
         .onClick(() => {
@@ -185,7 +182,7 @@ export struct AddBillPage {
         }
         .width('100%')
         .padding({ left: 16, right: 16, top: 4, bottom: 4 })
-        .backgroundColor('#FFFFFF') // color_card
+        .backgroundColor('#FFFFFF')
         .borderRadius(8)
         .margin({ left: 16, right: 16, bottom: 24 })
 
@@ -195,7 +192,7 @@ export struct AddBillPage {
           .height(48)
           .fontSize(16)
           .fontColor('#FFFFFF')
-          .backgroundColor('#1976D2') // color_primary
+          .backgroundColor('#1976D2')
           .borderRadius(24)
           .margin({ left: 16, right: 16, bottom: 24 })
           .onClick(() => {

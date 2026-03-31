@@ -1,59 +1,60 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window } from '@kit.ArkUI';
-import { DBHelper } from '../database/DBHelper';
-
-const DOMAIN = 0x0000;
+import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
+import { DBHelper } from '../database/DBHelper'
+import { LogUtils } from '../utils/LogUtils'
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET)
     } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
+      LogUtils.error('EntryAbility', 'setColorMode failed: %{public}s', JSON.stringify(err))
     }
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    LogUtils.info('EntryAbility', 'onCreate')
 
-    try {
-      DBHelper.getInstance().init(this.context).then(() => {
-        hilog.info(DOMAIN, 'testTag', '%{public}s', 'Database initialized successfully');
-      }).catch((err: Error) => {
-        hilog.error(DOMAIN, 'testTag', 'Failed to initialize database: %{public}s', JSON.stringify(err));
-      });
-    } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to call database init: %{public}s', JSON.stringify(err));
-    }
+    DBHelper.getInstance().init(this.context).then(() => {
+      LogUtils.info('EntryAbility', 'Database initialized')
+    }).catch((err: Error) => {
+      LogUtils.error('EntryAbility', 'Database init failed: %{public}s', JSON.stringify(err))
+    })
   }
 
   onDestroy(): void {
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
+    LogUtils.info('EntryAbility', 'onDestroy')
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    // Main window is created, set main page for this ability
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
+    LogUtils.info('EntryAbility', 'onWindowStageCreate')
 
-    windowStage.loadContent('pages/Index', (err) => {
+    windowStage.loadContent('pages/Index', async (err) => {
       if (err.code) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
-        return;
+        LogUtils.error('EntryAbility', 'loadContent failed: %{public}s', JSON.stringify(err))
+        return
       }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
-    });
+      // 设置状态栏为亮色主题（白底黑字），与应用顶部背景一致
+      try {
+        const mainWindow = await windowStage.getMainWindow()
+        await mainWindow.setWindowSystemBarProperties({
+          statusBarColor: '#FFFFFF',
+          statusBarContentColor: '#000000',
+          navigationBarColor: '#FFFFFF',
+          navigationBarContentColor: '#000000'
+        })
+      } catch (e) {
+        LogUtils.error('EntryAbility', 'setSystemBarProperties failed: %{public}s', JSON.stringify(e))
+      }
+    })
   }
 
   onWindowStageDestroy(): void {
-    // Main window is destroyed, release UI related resources
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
+    LogUtils.info('EntryAbility', 'onWindowStageDestroy')
   }
 
   onForeground(): void {
-    // Ability has brought to foreground
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
+    LogUtils.debug('EntryAbility', 'onForeground')
   }
 
   onBackground(): void {
-    // Ability has back to background
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    LogUtils.debug('EntryAbility', 'onBackground')
   }
 }
