@@ -17,42 +17,60 @@ export struct BillGroup {
 
   private getDayNetDisplay(): string {
     const net = this.getDayNet()
-    if (net > 0) {
-      return `+¥${AmountUtil.fen2Display(net)}`
-    } else if (net < 0) {
-      return `-¥${AmountUtil.fen2Display(-net)}`
-    } else {
-      return `¥0.00`
-    }
+    if (net > 0) return `+¥${AmountUtil.fen2Display(net)}`
+    if (net < 0) return `-¥${AmountUtil.fen2Display(-net)}`
+    return `¥0.00`
   }
 
   build() {
     Column() {
-      // Date header
+      // 日期头
       Row() {
-        Text(DateUtil.friendlyDate(this.date))
-          .fontSize(14)
-          .fontColor('#9E9E9E') // color_text_secondary
+        // 左侧日期标签
+        Row() {
+          Text(DateUtil.friendlyDate(this.date))
+            .fontSize(12)
+            .fontColor('#757575')
+            .fontWeight(FontWeight.Medium)
+        }
+        .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+        .backgroundColor('#F5F5F5')
+        .borderRadius(10)
+
         Blank()
+
+        // 右侧当日净额
         Text(this.getDayNetDisplay())
-          .fontSize(14)
+          .fontSize(13)
           .fontColor(this.getDayNet() >= 0 ? '#4CAF50' : '#F44336')
+          .fontWeight(FontWeight.Medium)
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+      .padding({ left: 14, right: 14, top: 10, bottom: 10 })
 
-      // Bill items
-      ForEach(this.bills, (bill: Bill) => {
-        BillItem({ bill: bill, onDelete: (id: number) => { this.onDeleteBill(id) } })
-        Divider()
-          .color('#E0E0E0') // color_divider
-          .margin({ left: 72 })
+      // 分隔线
+      Divider()
+        .color('#F0F0F0')
+        .margin({ left: 14, right: 14 })
+
+      // 账单列表
+      ForEach(this.bills, (bill: Bill, index: number) => {
+        BillItem({
+          bill: bill,
+          onDelete: (id: number) => { this.onDeleteBill(id) }
+        })
+        if (index < this.bills.length - 1) {
+          Divider()
+            .color('#F5F5F5')
+            .margin({ left: 70 })  // 缩进对齐文字区域
+        }
       })
     }
     .width('100%')
-    .backgroundColor('#FFFFFF') // color_card
-    .borderRadius(12)
-    .margin({ left: 16, right: 16, bottom: 8 })
+    .backgroundColor('#FFFFFF')
+    .borderRadius(14)
+    .margin({ left: 16, right: 16, bottom: 10 })
+    .shadow({ radius: 6, color: '#0D000000', offsetX: 0, offsetY: 2 })
     .clip(true)
   }
 }

@@ -1,78 +1,91 @@
 import { Bill } from '../model/Bill'
-import { getCategoryInfo } from '../model/Category'
+import { getCategoryInfo, CategoryInfo } from '../model/Category'
 import { AmountUtil } from '../utils/AmountUtil'
 
 @Component
 export struct BillItem {
   @Prop bill: Bill = {
-    id: 0,
-    amount: 0,
-    type: 'expense',
-    category: '',
-    remark: '',
-    date: '',
-    createdAt: 0
+    id: 0, amount: 0, type: 'expense',
+    category: '', remark: '', date: '', createdAt: 0
   }
   onDelete: (id: number) => void = () => {}
 
   @Builder
   deleteBuilder() {
-    Button('删除')
-      .width(72)
-      .height('100%')
-      .backgroundColor('#F44336') // color_expense
-      .fontColor('#FFFFFF')
-      .fontSize(14)
-      .onClick(() => {
-        this.onDelete(this.bill.id)
-      })
+    Column() {
+      Image($rawfile('icon_other.svg'))
+        .width(20)
+        .height(20)
+        .fillColor('#FFFFFF')
+        .margin({ bottom: 4 })
+      Text('删除')
+        .fontSize(12)
+        .fontColor('#FFFFFF')
+    }
+    .width(72)
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .backgroundColor('#F44336')
+    .onClick(() => {
+      this.onDelete(this.bill.id)
+    })
   }
 
   build() {
     Row() {
-      // Category icon
+      // 左侧分类色条
+      Column()
+        .width(3)
+        .height(52)
+        .backgroundColor(getCategoryInfo(this.bill.category).color)
+        .borderRadius({ topLeft: 3, bottomLeft: 3 })
+        .margin({ right: 12 })
+
+      // 图标圆
       Column() {
-        Text(getCategoryInfo(this.bill.category).emoji)
-          .fontSize(20)
+        Image($rawfile(getCategoryInfo(this.bill.category).icon + '.svg'))
+          .width(22)
+          .height(22)
+          .fillColor('#FFFFFF')
       }
-      .width(44)
-      .height(44)
-      .borderRadius(22)
-      .backgroundColor(getCategoryInfo(this.bill.category).color + '33')
+      .width(42)
+      .height(42)
+      .borderRadius(21)
+      .backgroundColor(getCategoryInfo(this.bill.category).color)
       .alignItems(HorizontalAlign.Center)
       .justifyContent(FlexAlign.Center)
       .margin({ right: 12 })
 
-      // Middle info
+      // 中间文字
       Column() {
         Text(this.bill.category)
-          .fontSize(16)
-          .fontColor('#212121') // color_text_primary
+          .fontSize(15)
+          .fontColor('#212121')
           .fontWeight(FontWeight.Medium)
           .maxLines(1)
         if (this.bill.remark && this.bill.remark.length > 0) {
           Text(this.bill.remark)
             .fontSize(12)
-            .fontColor('#9E9E9E') // color_text_secondary
+            .fontColor('#9E9E9E')
             .maxLines(1)
-            .margin({ top: 2 })
+            .margin({ top: 3 })
         }
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      // Amount
-      Column() {
-        Text(AmountUtil.formatWithSign(this.bill.amount, this.bill.type))
-          .fontSize(16)
-          .fontColor(this.bill.type === 'income' ? '#4CAF50' : '#F44336')
-          .fontWeight(FontWeight.Medium)
-      }
-      .alignItems(HorizontalAlign.End)
+      // 金额
+      Text(AmountUtil.formatWithSign(this.bill.amount, this.bill.type))
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.bill.type === 'income' ? '#4CAF50' : '#F44336')
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
-    .backgroundColor('#FFFFFF') // color_card
+    .height(64)
+    .padding({ left: 0, right: 16 })
+    .backgroundColor('#FFFFFF')
+    .alignItems(VerticalAlign.Center)
     .swipeAction({ end: this.deleteBuilder })
   }
 }

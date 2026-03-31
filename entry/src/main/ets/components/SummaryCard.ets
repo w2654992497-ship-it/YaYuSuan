@@ -5,62 +5,76 @@ export struct SummaryCard {
   @Prop income: number = 0
   @Prop expense: number = 0
 
+  private get balance(): number {
+    return this.income - this.expense
+  }
+
   build() {
-    Row() {
+    Column() {
+      // 主金额区：本月支出
       Column() {
-        Text('收入')
+        Text('本月支出')
           .fontSize(12)
-          .fontColor('#9E9E9E') // color_text_secondary
-          .margin({ bottom: 4 })
-        Text(`¥${AmountUtil.fen2Display(this.income)}`)
-          .fontSize(16)
-          .fontColor('#4CAF50') // color_income
-          .fontWeight(FontWeight.Medium)
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Center)
-
-      Divider()
-        .vertical(true)
-        .height(40)
-        .color('#E0E0E0') // color_divider
-
-      Column() {
-        Text('支出')
-          .fontSize(12)
-          .fontColor('#9E9E9E') // color_text_secondary
-          .margin({ bottom: 4 })
+          .fontColor('rgba(255,255,255,0.75)')
+          .margin({ bottom: 6 })
         Text(`¥${AmountUtil.fen2Display(this.expense)}`)
-          .fontSize(16)
-          .fontColor('#F44336') // color_expense
-          .fontWeight(FontWeight.Medium)
+          .fontSize(34)
+          .fontColor('#FFFFFF')
+          .fontWeight(FontWeight.Bold)
+          .letterSpacing(1)
       }
-      .layoutWeight(1)
       .alignItems(HorizontalAlign.Center)
+      .padding({ top: 20, bottom: 16 })
 
+      // 分隔线
       Divider()
-        .vertical(true)
-        .height(40)
-        .color('#E0E0E0') // color_divider
+        .color('rgba(255,255,255,0.2)')
+        .margin({ left: 20, right: 20 })
 
-      Column() {
-        Text('结余')
-          .fontSize(12)
-          .fontColor('#9E9E9E') // color_text_secondary
-          .margin({ bottom: 4 })
-        Text(`¥${AmountUtil.fen2Display(this.income - this.expense)}`)
-          .fontSize(16)
-          .fontColor(this.income - this.expense >= 0 ? '#4CAF50' : '#F44336')
-          .fontWeight(FontWeight.Medium)
+      // 收入 / 结余 行
+      Row() {
+        Column() {
+          Text('收入')
+            .fontSize(11)
+            .fontColor('rgba(255,255,255,0.65)')
+            .margin({ bottom: 4 })
+          Text(`+¥${AmountUtil.fen2Display(this.income)}`)
+            .fontSize(15)
+            .fontColor('#FFFFFF')
+            .fontWeight(FontWeight.Medium)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
+
+        Divider()
+          .vertical(true)
+          .height(32)
+          .color('rgba(255,255,255,0.2)')
+
+        Column() {
+          Text('结余')
+            .fontSize(11)
+            .fontColor('rgba(255,255,255,0.65)')
+            .margin({ bottom: 4 })
+          Text(`¥${AmountUtil.fen2Display(Math.abs(this.balance))}`)
+            .fontSize(15)
+            // 正结余亮绿，负结余浅红（Canvas 不适用，此处为 Text，使用字符串色）
+            .fontColor(this.balance >= 0 ? '#A5D6A7' : '#FFCDD2')
+            .fontWeight(FontWeight.Medium)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
       }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Center)
+      .width('100%')
+      .padding({ top: 14, bottom: 20 })
     }
     .width('100%')
-    .padding(16)
-    .backgroundColor('#FFFFFF') // color_card
-    .borderRadius(12)
+    .linearGradient({
+      angle: 150,
+      colors: [['#1E88E5', 0.0], ['#0D47A1', 1.0]]
+    })
+    .borderRadius(16)
     .margin({ left: 16, right: 16, top: 8, bottom: 8 })
-    .shadow({ radius: 4, color: '#1A000000', offsetX: 0, offsetY: 2 })
+    .shadow({ radius: 16, color: '#401976D2', offsetX: 0, offsetY: 6 })
   }
 }
