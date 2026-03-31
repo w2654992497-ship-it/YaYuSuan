@@ -1,13 +1,10 @@
 import { relationalStore } from '@kit.ArkData'
-import { hilog } from '@kit.PerformanceAnalysisKit'
 import { Bill } from '../model/Bill'
+import { LogUtils } from '../utils/LogUtils'
 import { FilterOptions } from '../model/FilterOptions'
 import { CategoryStat, MonthStat } from '../model/StatResult'
 import { DBHelper } from './DBHelper'
 import { getCategoryColor } from '../model/Category'
-
-const DOMAIN = 0x0000
-const TAG = 'BillDao'
 
 export class BillDao {
   private static instance: BillDao | null = null
@@ -37,10 +34,10 @@ export class BillDao {
         createdAt: bill.createdAt
       }
       const rowId = await store.insert('bills', valueBucket)
-      hilog.info(DOMAIN, TAG, 'Inserted bill with rowId: %{public}d', rowId)
+      LogUtils.info('BillDao', 'Inserted bill rowId=%{public}d', String(rowId))
       return rowId
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to insert bill: %{public}s', JSON.stringify(err))
+      LogUtils.error('BillDao', 'insert failed: %{public}s', JSON.stringify(err))
       throw err
     }
   }
@@ -51,9 +48,9 @@ export class BillDao {
       const predicates = new relationalStore.RdbPredicates('bills')
       predicates.equalTo('id', id)
       await store.delete(predicates)
-      hilog.info(DOMAIN, TAG, 'Deleted bill with id: %{public}d', id)
+      LogUtils.info('BillDao', 'Deleted bill id=%{public}d', String(id))
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to delete bill: %{public}s', JSON.stringify(err))
+      LogUtils.error('BillDao', 'deleteById failed: %{public}s', JSON.stringify(err))
       throw err
     }
   }
@@ -94,7 +91,7 @@ export class BillDao {
       resultSet.close()
       return bills
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to query bills: %{public}s', JSON.stringify(err))
+      LogUtils.error('BillDao', 'queryByFilter failed: %{public}s', JSON.stringify(err))
       return []
     }
   }
@@ -132,7 +129,7 @@ export class BillDao {
 
       return stats
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to query category stats: %{public}s', JSON.stringify(err))
+      LogUtils.error('BillDao', 'queryCategoryStats failed: %{public}s', JSON.stringify(err))
       return []
     }
   }
@@ -149,16 +146,14 @@ export class BillDao {
         const incomeResult = await store.querySql(incomeSql)
         let income = 0
         if (incomeResult.goToNextRow()) {
-          const val = incomeResult.getLong(incomeResult.getColumnIndex('total'))
-          income = val
+          income = incomeResult.getLong(incomeResult.getColumnIndex('total'))
         }
         incomeResult.close()
 
         const expenseResult = await store.querySql(expenseSql)
         let expense = 0
         if (expenseResult.goToNextRow()) {
-          const val = expenseResult.getLong(expenseResult.getColumnIndex('total'))
-          expense = val
+          expense = expenseResult.getLong(expenseResult.getColumnIndex('total'))
         }
         expenseResult.close()
 
@@ -167,7 +162,7 @@ export class BillDao {
 
       return monthStats
     } catch (err) {
-      hilog.error(DOMAIN, TAG, 'Failed to query month stats: %{public}s', JSON.stringify(err))
+      LogUtils.error('BillDao', 'queryMonthStats failed: %{public}s', JSON.stringify(err))
       return []
     }
   }

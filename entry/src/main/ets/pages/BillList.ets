@@ -6,6 +6,7 @@ import { SummaryCard } from '../components/SummaryCard'
 import { FilterBar } from '../components/FilterBar'
 import { BillGroup } from '../components/BillGroup'
 import { LazyForEachDataSource } from '../utils/LazyForEachDataSource'
+import { LogUtils } from '../utils/LogUtils'
 
 @Component
 export struct BillListPage {
@@ -86,7 +87,7 @@ export struct BillListPage {
         (g: BillGroupData) => `${g.date}:${g.bills.map((b: Bill) => b.id.toString()).join(',')}`
       )
     } catch (err) {
-      console.error('BillListPage loadData error:', JSON.stringify(err))
+      LogUtils.error('BillList', 'loadData error: %{public}s', JSON.stringify(err))
     } finally {
       this.isLoading = false
     }
@@ -97,7 +98,7 @@ export struct BillListPage {
       await BillDao.getInstance().deleteById(id)
       await this.loadData()
     } catch (err) {
-      console.error('BillListPage deleteBill error:', JSON.stringify(err))
+      LogUtils.error('BillList', 'deleteBill error: %{public}s', JSON.stringify(err))
     }
   }
 
