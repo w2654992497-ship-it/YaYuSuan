@@ -5,16 +5,18 @@ import { BillDao } from '../database/BillDao'
 import { SummaryCard } from '../components/SummaryCard'
 import { FilterBar } from '../components/FilterBar'
 import { BillGroup } from '../components/BillGroup'
+import { LazyForEachDataSource } from '../utils/LazyForEachDataSource'
 
 @Component
 export struct BillListPage {
   @Watch('onTabChanged')
   @Consume activeTabIndex: number
-  @State billGroups: BillGroupData[] = []
   @State filter: FilterOptions = createDefaultFilter()
   @State totalIncome: number = 0
   @State totalExpense: number = 0
   @State isLoading: boolean = false
+  // LazyForEachDataSource 管理分组列表，差量更新避免滑动删除后全量重建
+  private billGroupsDS: LazyForEachDataSource<BillGroupData> = new LazyForEachDataSource<BillGroupData>([])
 
   onTabChanged(): void {
     if (this.activeTabIndex === 0) {
@@ -52,12 +54,8 @@ export struct BillListPage {
     })
 
     groups.sort((a, b) => {
-      if (a.date > b.date) {
-        return -1
-      }
-      if (a.date < b.date) {
-        return 1
-      }
+      if (a.date > b.date) return -1
+      if (a.date < b.date) return 1
       return 0
     })
 
@@ -79,7 +77,14 @@ export struct BillListPage {
       }
       this.totalIncome = income
       this.totalExpense = expense
-      this.billGroups = this.groupByDate(bills)
+
+      const newGroups = this.groupByDate(bills)
+      // 差量更新：key = 日期，指纹 = 日期+账单ID列表，只有变化的分组才触发组件重建
+      this.billGroupsDS.smartUpdate(
+        newGroups,
+        (g: BillGroupData) => g.date,
+        (g: BillGroupData) => `${g.date}:${g.bills.map((b: Bill) => b.id.toString()).join(',')}`
+      )
     } catch (err) {
       console.error('BillListPage loadData error:', JSON.stringify(err))
     } finally {
@@ -113,20 +118,20 @@ export struct BillListPage {
           LoadingProgress()
             .width(48)
             .height(48)
-            .color('#1976D2') // color_primary
+            .color('#1976D2')
         }
         .width('100%')
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-      } else if (this.billGroups.length === 0) {
+      } else if (this.billGroupsDS.totalCount() === 0) {
         Column() {
           Text('🧾')
             .fontSize(64)
             .margin({ bottom: 16 })
           Text('暂无账单记录')
             .fontSize(16)
-            .fontColor('#9E9E9E') // color_text_secondary
+            .fontColor('#9E9E9E')
         }
         .width('100%')
         .layoutWeight(1)
@@ -134,7 +139,7 @@ export struct BillListPage {
         .alignItems(HorizontalAlign.Center)
       } else {
         List() {
-          ForEach(this.billGroups, (group: BillGroupData) => {
+          LazyForEach(this.billGroupsDS, (group: BillGroupData) => {
             ListItem() {
               BillGroup({
                 date: group.date,
@@ -146,7 +151,7 @@ export struct BillListPage {
                 }
               })
             }
-          })
+          }, (group: BillGroupData) => group.date)
         }
         .width('100%')
         .layoutWeight(1)
