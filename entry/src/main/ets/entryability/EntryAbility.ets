@@ -1,5 +1,5 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit'
-import { window } from '@kit.ArkUI'
+import { window, display } from '@kit.ArkUI'
 import { DBHelper } from '../database/DBHelper'
 import { LogUtils } from '../utils/LogUtils'
 
@@ -31,17 +31,37 @@ export default class EntryAbility extends UIAbility {
         LogUtils.error('EntryAbility', 'loadContent failed: %{public}s', JSON.stringify(err))
         return
       }
-      // 设置状态栏为亮色主题（白底黑字），与应用顶部背景一致
       try {
         const mainWindow = await windowStage.getMainWindow()
+
+        // 沉浸式：布局延伸至系统栏区域
+        await mainWindow.setWindowLayoutFullScreen(true)
+
+        // 透明系统栏，初始深色图标（适配白色顶部的账单列表页）
         await mainWindow.setWindowSystemBarProperties({
-          statusBarColor: '#FFFFFF',
+          statusBarColor: '#00000000',
           statusBarContentColor: '#000000',
-          navigationBarColor: '#FFFFFF',
+          navigationBarColor: '#00000000',
           navigationBarContentColor: '#000000'
         })
+
+        // 读取安全区域高度，换算为 vp 后存入 AppStorage（组件直接使用，无需再转换）
+        const density = display.getDefaultDisplaySync().densityPixels
+        const systemAvoid = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+        const navAvoid = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR)
+        const sbVp = systemAvoid.topRect.height / density
+        const nbVp = Math.max(systemAvoid.bottomRect.height, navAvoid.bottomRect.height) / density
+        AppStorage.setOrCreate('statusBarHeight', sbVp)
+        AppStorage.setOrCreate('navBarHeight', nbVp)
+        // 存储 window 实例，供页面动态切换状态栏图标色
+        AppStorage.setOrCreate('mainWindow', mainWindow)
+
+        LogUtils.info('EntryAbility',
+          'safeArea statusBar=%{public}s navBar=%{public}s vp',
+          sbVp.toFixed(1), nbVp.toFixed(1)
+        )
       } catch (e) {
-        LogUtils.error('EntryAbility', 'setSystemBarProperties failed: %{public}s', JSON.stringify(e))
+        LogUtils.error('EntryAbility', 'immersive setup failed: %{public}s', JSON.stringify(e))
       }
     })
   }

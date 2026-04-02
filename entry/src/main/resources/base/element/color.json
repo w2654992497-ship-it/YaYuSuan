@@ -34,7 +34,7 @@
     },
     {
       "name": "color_text_secondary",
-      "value": "#9E9E9E"
+      "value": "#757575"
     },
     {
       "name": "color_divider",
@@ -42,7 +42,7 @@
     },
     {
       "name": "color_tab_inactive",
-      "value": "#9E9E9E"
+      "value": "#757575"
     }
   ]
 }

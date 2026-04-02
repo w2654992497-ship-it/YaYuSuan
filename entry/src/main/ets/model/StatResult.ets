@@ -19,3 +19,10 @@ export interface BillGroupData {
   dayIncome: number
   dayExpense: number
 }
+
+// 日历视图：每天的收支汇总
+export interface DaySummary {
+  date: string      // YYYY-MM-DD
+  income: number    // 单位：分
+  expense: number   // 单位：分
+}

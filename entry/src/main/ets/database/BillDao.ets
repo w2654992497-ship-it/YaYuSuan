@@ -2,7 +2,7 @@ import { relationalStore } from '@kit.ArkData'
 import { Bill } from '../model/Bill'
 import { LogUtils } from '../utils/LogUtils'
 import { FilterOptions } from '../model/FilterOptions'
-import { CategoryStat, MonthStat } from '../model/StatResult'
+import { CategoryStat, MonthStat, DaySummary } from '../model/StatResult'
 import { DBHelper } from './DBHelper'
 import { getCategoryColor } from '../model/Category'
 
@@ -146,14 +146,16 @@ export class BillDao {
         const incomeResult = await store.querySql(incomeSql)
         let income = 0
         if (incomeResult.goToNextRow()) {
-          income = incomeResult.getLong(incomeResult.getColumnIndex('total'))
+          const val = incomeResult.getLong(incomeResult.getColumnIndex('total'))
+          income = isNaN(val) ? 0 : val
         }
         incomeResult.close()
 
         const expenseResult = await store.querySql(expenseSql)
         let expense = 0
         if (expenseResult.goToNextRow()) {
-          expense = expenseResult.getLong(expenseResult.getColumnIndex('total'))
+          const val = expenseResult.getLong(expenseResult.getColumnIndex('total'))
+          expense = isNaN(val) ? 0 : val
         }
         expenseResult.close()
 
@@ -163,6 +165,35 @@ export class BillDao {
       return monthStats
     } catch (err) {
       LogUtils.error('BillDao', 'queryMonthStats failed: %{public}s', JSON.stringify(err))
+      return []
+    }
+  }
+
+  /**
+   * 查询指定月份每天的收支汇总（日历视图用）
+   */
+  async queryDailySummary(month: string): Promise<DaySummary[]> {
+    try {
+      const store = this.getStore()
+      const sql = `SELECT date, ` +
+        `SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as income, ` +
+        `SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expense ` +
+        `FROM bills WHERE date LIKE '${month}%' GROUP BY date ORDER BY date ASC`
+      const resultSet = await store.querySql(sql)
+      const result: DaySummary[] = []
+      while (resultSet.goToNextRow()) {
+        const inc = resultSet.getLong(resultSet.getColumnIndex('income'))
+        const exp = resultSet.getLong(resultSet.getColumnIndex('expense'))
+        result.push({
+          date: resultSet.getString(resultSet.getColumnIndex('date')),
+          income: isNaN(inc) ? 0 : inc,
+          expense: isNaN(exp) ? 0 : exp
+        })
+      }
+      resultSet.close()
+      return result
+    } catch (err) {
+      LogUtils.error('BillDao', 'queryDailySummary failed: %{public}s', JSON.stringify(err))
       return []
     }
   }

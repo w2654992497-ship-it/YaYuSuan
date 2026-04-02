@@ -1,33 +1,34 @@
 /**
- * 通用导航栏组件
+ * 通用导航栏组件，自动适配沉浸式状态栏安全区域。
  *
  * 用法示例（月份导航）：
  *   NavBar({
  *     title: '2026年3月',
- *     leftText: '<',
- *     rightText: '>',
+ *     leftText: '‹',
+ *     rightText: '›',
  *     rightEnabled: false,
  *     onLeftClick: () => { ... },
  *     onRightClick: () => { ... }
  *   })
- *
- * 用法示例（页面标题）：
- *   NavBar({ title: '记账' })
  */
 @Component
 export struct NavBar {
+  // 状态栏安全区域高度（px），由 EntryAbility 写入 AppStorage
+  @StorageProp('statusBarHeight') sbHeight: number = 0
+
   @Prop title: string = ''
-  // 左侧：文字 或 图标（二选一）
   @Prop leftText: string = ''
   leftIcon?: Resource
   onLeftClick?: () => void
   @Prop showLeft: boolean = true
-  // 右侧：文字 或 图标（二选一）
   @Prop rightText: string = ''
   rightIcon?: Resource
   onRightClick?: () => void
+  onTitleClick?: () => void
+  // 额外右侧图标（如视图切换）
+  extraRightIcon?: string       // rawfile 图标名（不含 .svg）
+  onExtraRightClick?: () => void
   @Prop rightEnabled: boolean = true
-  // 样式
   @Prop bgColor: string = '#FFFFFF'
   @Prop titleColor: string = '#212121'
   @Prop accentColor: string = '#1976D2'
@@ -36,6 +37,11 @@ export struct NavBar {
 
   build() {
     Column() {
+      // 状态栏占位（背景色延伸进状态栏区域）
+      Row()
+        .width('100%')
+        .height(this.sbHeight)
+
       Row() {
         // 左侧按钮
         if (this.showLeft) {
@@ -46,7 +52,7 @@ export struct NavBar {
                 .fillColor(this.accentColor)
             } else if (this.leftText.length > 0) {
               Text(this.leftText)
-                .fontSize(18)
+                .fontSize(22)
                 .fontColor(this.accentColor)
                 .fontWeight(FontWeight.Medium)
             }
@@ -68,6 +74,8 @@ export struct NavBar {
           .textAlign(TextAlign.Center)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .decoration(this.onTitleClick ? { type: TextDecorationType.Underline, color: '#E0E0E0' } : { type: TextDecorationType.None })
+          .onClick(() => { this.onTitleClick?.() })
 
         // 右侧按钮
         Row() {
@@ -77,12 +85,12 @@ export struct NavBar {
               .fillColor(this.rightEnabled ? this.accentColor : '#757575')
           } else if (this.rightText.length > 0) {
             Text(this.rightText)
-              .fontSize(18)
+              .fontSize(22)
               .fontColor(this.rightEnabled ? this.accentColor : '#757575')
               .fontWeight(FontWeight.Medium)
           }
         }
-        .width(48)
+        .width(40)
         .height(this.navHeight)
         .justifyContent(FlexAlign.Center)
         .onClick(() => {
@@ -90,6 +98,20 @@ export struct NavBar {
             this.onRightClick?.()
           }
         })
+
+        // 额外右侧图标
+        if (this.extraRightIcon !== undefined && this.extraRightIcon!.length > 0) {
+          Row() {
+            Image($rawfile(this.extraRightIcon! + '.svg'))
+              .width(20)
+              .height(20)
+              .fillColor(this.accentColor)
+          }
+          .width(40)
+          .height(this.navHeight)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => { this.onExtraRightClick?.() })
+        }
       }
       .width('100%')
       .height(this.navHeight)
