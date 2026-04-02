@@ -452,13 +452,26 @@ CREATE TABLE IF NOT EXISTS bills (
 
 | 阶段 | 核心任务 | 涉及文件 | 状态 |
 |------|---------|---------|------|
-| Day 1 | 数据模型 + 数据库层 + Tab 主框架 | `model/*`, `database/*`, `Index.ets`, `EntryAbility.ets` | 待开始 |
-| Day 2 | 账单录入页 | `AddBill.ets`, `CategoryGrid.ets` | 待开始 |
-| Day 3 | 账单列表页 | `BillList.ets`, `BillItem.ets`, `BillGroup.ets`, `FilterBar.ets`, `SummaryCard.ets` | 待开始 |
-| Day 4 | 统计图表页 | `Statistics.ets`, `PieChart.ets`, `BarChart.ets` | 待开始 |
-| Day 5 | 预算提醒（可选） | `Settings.ets`, `BillDao.ets`（超额检查） | 待开始 |
-| Day 6 | 数据导入导出（可选） | `FileUtil.ets`, `Settings.ets` | 待开始 |
-| Day 7 | 资源完善、UI 打磨、联调测试 | `color.json`, `float.json`, `string.json` | 待开始 |
+| Day 1 | 数据模型 + 数据库层 + Tab 主框架 | `model/*`, `database/*`, `Index.ets`, `EntryAbility.ets` | ✅ 已完成 |
+| Day 2 | 账单录入页 | `AddBill.ets`, `CategoryGrid.ets` | ✅ 已完成 |
+| Day 3 | 账单列表页 | `BillList.ets`, `BillItem.ets`, `BillGroup.ets`, `FilterBar.ets`, `SummaryCard.ets` | ✅ 已完成 |
+| Day 4 | 统计图表页 | `Statistics.ets`, `PieChart.ets`, `BarChart.ets` | ✅ 已完成 |
+| Day 5 | 预算提醒（可选） | `Settings.ets`, `BillDao.ets`（超额检查） | ✅ 已完成（Settings UI + preferences 存储 + 超额 Toast） |
+| Day 6 | 数据导出（可选） | `Settings.ets` | ✅ 已完成（CSV 导出 + DocumentViewPicker） |
+| Day 7 | 资源完善、UI 打磨、联调测试 | `color.json`, `float.json`, `string.json` | ✅ 已完成（颜色 token 规范、沉浸式、动画优化） |
+
+---
+
+## 实际交付与规范偏差说明
+
+| 项目 | 规范要求 | 实际交付 | 备注 |
+|------|---------|---------|------|
+| Tab 数量 | 3 个（账单/记账/统计） | 4 个（+设置） | 设置页单独 Tab，更易发现 |
+| FilterBar | 独立组件供 BillList 使用 | BillList 内联实现筛选 Chip | FilterBar.ets 保留备用 |
+| PieChart 图例 | Canvas 下方 ForEach 渲染 | Statistics.ets 中独立渲染 | 组件职责分离更清晰 |
+| BarChart 图例 | Canvas 下方 | Canvas 内部底部绘制 | 一体感更强 |
+| 颜色引用 | 统一 `$r('app.color.xxx')` | 大量硬编码（Canvas 除外） | ArkUI 组件链式调用中 `$r()` 受限，实际以 design token 字符串统一 |
+| IS_DEBUG | 发布前改 false | true | 开发阶段保持，发布前切换 |
 
 ---
 

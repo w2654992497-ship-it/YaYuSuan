@@ -41,7 +41,7 @@ export struct BillGroup {
     .alignItems(HorizontalAlign.Center)
     .backgroundColor('#F44336')
     .onClick(() => {
-      AlertDialog.show({
+      this.getUIContext().showAlertDialog({
         title: '删除账单',
         message: `确认删除「${bill.category}」这条记录吗？`,
         primaryButton: {
@@ -111,7 +111,7 @@ export struct BillGroup {
     .width('100%')
     .backgroundColor('#FFFFFF')
     .borderRadius(14)
-    .margin({ left: 16, right: 16, bottom: 10 })
+    .margin({ bottom: 10 })
     .shadow({ radius: 6, color: '#0D000000', offsetX: 0, offsetY: 2 })
     .clip(true)
   }

@@ -15,6 +15,8 @@ interface PopupChangeEvent {
 
 @Component
 export struct StatisticsPage {
+  @Watch('onTabChanged')
+  @Consume activeTabIndex: number
   @State currentMonth: string = DateUtil.currentMonth()
   @State chartType: string = 'pie'
   @State incomeTotal: number = 0
@@ -23,9 +25,44 @@ export struct StatisticsPage {
   @State monthStats: MonthStat[] = []
   @State isLoading: boolean = false
   @State showChartMenu: boolean = false
+  @State slideOffsetX: number = 0
+
+  onTabChanged(): void {
+    if (this.activeTabIndex === 2) {
+      this.loadData()
+    }
+  }
 
   aboutToAppear(): void {
     this.loadData()
+  }
+
+  private doMonthSwitch(direction: number): void {
+    if (direction < 0 && DateUtil.isCurrentMonth(this.currentMonth)) {
+      this.getUIContext().animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+        this.slideOffsetX = 0
+      })
+      return
+    }
+    const next = direction > 0
+      ? DateUtil.getPrevMonth(this.currentMonth)
+      : DateUtil.getNextMonth(this.currentMonth)
+    const exitX = direction > 0 ? 360 : -360
+
+    this.getUIContext().animateTo({
+      duration: 150,
+      curve: Curve.EaseIn,
+      onFinish: () => {
+        this.slideOffsetX = exitX * -1
+        this.currentMonth = next
+        this.loadData()
+        this.getUIContext().animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+          this.slideOffsetX = 0
+        })
+      }
+    }, () => {
+      this.slideOffsetX = exitX
+    })
   }
 
   private async loadMonthSummary(): Promise<void> {
@@ -95,24 +132,82 @@ export struct StatisticsPage {
 
   build() {
     Column() {
-      // 月份导航
+      // ── 页面标题 ──
       NavBar({
-        title: DateUtil.formatMonthDisplay(this.currentMonth),
-        leftText: '‹',
-        rightText: '›',
-        rightEnabled: !DateUtil.isCurrentMonth(this.currentMonth),
-        showDivider: false,
-        navHeight: 48,
-        onLeftClick: () => {
-          this.currentMonth = DateUtil.getPrevMonth(this.currentMonth)
-          this.loadData()
-        },
-        onRightClick: () => {
-          this.currentMonth = DateUtil.getNextMonth(this.currentMonth)
-          this.loadData()
-        }
+        title: '统计',
+        showLeft: false,
+        showDivider: true
       })
 
+      // ── 月份导航（与账单页统一样式） ──
+      Row() {
+        // 左箭头
+        Column() {
+          Text('‹')
+            .fontSize(24)
+            .fontColor('#1976D2')
+            .fontWeight(FontWeight.Bold)
+        }
+        .width(44)
+        .height(44)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .borderRadius(22)
+        .backgroundColor('#E3F2FD')
+        .onClick(() => { this.doMonthSwitch(1) })
+
+        // 月份标题
+        Column() {
+          Text(DateUtil.formatMonthDisplay(this.currentMonth))
+            .fontSize(18)
+            .fontColor('#212121')
+            .fontWeight(FontWeight.Bold)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Center)
+        .onClick(() => {
+          const parts = this.currentMonth.split('-')
+          const now = new Date()
+          this.getUIContext().showDatePickerDialog({
+            start: new Date('2020-01-01'),
+            end: now,
+            selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
+            lunar: false,
+            onDateAccept: (value: Date) => {
+              const y = value.getFullYear()
+              const m = (value.getMonth() + 1).toString().padStart(2, '0')
+              this.currentMonth = `${y}-${m}`
+              this.loadData()
+            }
+          })
+        })
+
+        // 右箭头
+        Column() {
+          Text('›')
+            .fontSize(24)
+            .fontColor(DateUtil.isCurrentMonth(this.currentMonth) ? '#E0E0E0' : '#1976D2')
+            .fontWeight(FontWeight.Bold)
+        }
+        .width(44)
+        .height(44)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .borderRadius(22)
+        .backgroundColor(DateUtil.isCurrentMonth(this.currentMonth) ? '#F5F5F5' : '#E3F2FD')
+        .onClick(() => {
+          if (!DateUtil.isCurrentMonth(this.currentMonth)) {
+            this.doMonthSwitch(-1)
+          }
+        })
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 12, right: 12 })
+      .alignItems(VerticalAlign.Center)
+      .backgroundColor('#FFFFFF')
+
+      // ── 内容区（跟手滑动） ──
       Scroll() {
         Column() {
           // 汇总卡片
@@ -207,6 +302,27 @@ export struct StatisticsPage {
         .width('100%')
       }
       .layoutWeight(1)
+      .clip(true)
+      .translate({ x: this.slideOffsetX })
+      .gesture(
+        PanGesture({ direction: PanDirection.Horizontal, distance: 5 })
+          .onActionUpdate((event: GestureEvent) => {
+            if (event) { this.slideOffsetX = event.offsetX }
+          })
+          .onActionEnd((event: GestureEvent) => {
+            if (!event) { this.slideOffsetX = 0; return }
+            if (event.offsetX > 80) {
+              this.doMonthSwitch(1)
+            } else if (event.offsetX < -80) {
+              this.doMonthSwitch(-1)
+            } else {
+              this.getUIContext().animateTo(
+                { duration: 150, curve: Curve.EaseOut },
+                () => { this.slideOffsetX = 0 }
+              )
+            }
+          })
+      )
     }
     .width('100%')
     .height('100%')

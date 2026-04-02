@@ -5,10 +5,6 @@ export struct SummaryCard {
   @Prop income: number = 0
   @Prop expense: number = 0
 
-  private get balance(): number {
-    return this.income - this.expense
-  }
-
   build() {
     Column() {
       // 主金额区：本月支出
@@ -56,10 +52,9 @@ export struct SummaryCard {
             .fontSize(11)
             .fontColor('rgba(255,255,255,0.65)')
             .margin({ bottom: 4 })
-          Text(`¥${AmountUtil.fen2Display(Math.abs(this.balance))}`)
+          Text(`¥${AmountUtil.fen2Display(Math.abs(this.income - this.expense))}`)
             .fontSize(15)
-            // 正结余亮绿，负结余浅红（Canvas 不适用，此处为 Text，使用字符串色）
-            .fontColor(this.balance >= 0 ? '#A5D6A7' : '#FFCDD2')
+            .fontColor((this.income - this.expense) >= 0 ? '#A5D6A7' : '#FFCDD2')
             .fontWeight(FontWeight.Medium)
         }
         .layoutWeight(1)
