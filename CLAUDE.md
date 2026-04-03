@@ -482,4 +482,3 @@ CREATE TABLE IF NOT EXISTS bills (
 - **金额**：数据库与内存中统一以"分"（整数）存储；UI 显示时调用 `AmountUtil.fen2Yuan()` 转换
 - **颜色**：禁止在 `.ets` 中硬编码颜色字符串，统一引用 `$r('app.color.xxx')`；图表绘制中 Canvas 颜色除外（Canvas API 不支持资源引用）
 - **异步**：数据库和文件操作全部使用 `async/await`，禁止 `.then().catch()` 混用
-- 页面跳转使用 `router.pushUrl`；Tab 切换通过修改 `currentIndex` 实现，不使用路由

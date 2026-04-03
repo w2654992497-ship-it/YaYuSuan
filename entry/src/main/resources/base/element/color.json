@@ -2,27 +2,27 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#FFFFFF"
+      "value": "#F0F4F8"
     },
     {
       "name": "color_income",
-      "value": "#4CAF50"
+      "value": "#059669"
     },
     {
       "name": "color_expense",
-      "value": "#F44336"
+      "value": "#E11D48"
     },
     {
       "name": "color_primary",
-      "value": "#1976D2"
+      "value": "#2C7A7B"
     },
     {
       "name": "color_surface",
-      "value": "#F5F5F5"
+      "value": "#FFFFFF"
     },
     {
       "name": "color_bg",
-      "value": "#FAFAFA"
+      "value": "#F0F4F8"
     },
     {
       "name": "color_card",
@@ -30,19 +30,27 @@
     },
     {
       "name": "color_text_primary",
-      "value": "#212121"
+      "value": "#1A202C"
     },
     {
       "name": "color_text_secondary",
-      "value": "#757575"
+      "value": "#718096"
     },
     {
       "name": "color_divider",
-      "value": "#E0E0E0"
+      "value": "#E2E8F0"
     },
     {
       "name": "color_tab_inactive",
-      "value": "#757575"
+      "value": "#A0AEC0"
+    },
+    {
+      "name": "color_accent",
+      "value": "#F59E0B"
+    },
+    {
+      "name": "color_duck",
+      "value": "#F59E0B"
     }
   ]
 }

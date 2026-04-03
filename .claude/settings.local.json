@@ -12,7 +12,8 @@
       "Bash(ssh:*)",
       "Bash(grep:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(find C:UsersshadowDesktopchanlu_im_harmonycommonutilssrcmainetsutils -type f -name *.ts -o -name *.ets)"
+      "Bash(find C:UsersshadowDesktopchanlu_im_harmonycommonutilssrcmainetsutils -type f -name *.ts -o -name *.ets)",
+      "Bash(wc:*)"
     ]
   }
 }
