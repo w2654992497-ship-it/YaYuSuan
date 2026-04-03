@@ -7,28 +7,22 @@ import { LogUtils } from '../utils/LogUtils'
 import { SummaryCard } from '../components/SummaryCard'
 import { PieChart } from '../components/PieChart'
 import { BarChart } from '../components/BarChart'
-import { NavBar } from '../components/NavBar'
-
-interface PopupChangeEvent {
-  isVisible: boolean
-}
 
 @Component
 export struct StatisticsPage {
   @Watch('onTabChanged')
   @Consume activeTabIndex: number
   @State currentMonth: string = DateUtil.currentMonth()
-  @State chartType: string = 'pie'
+  @State chartType: 'pie' | 'bar' = 'pie'
   @State incomeTotal: number = 0
   @State expenseTotal: number = 0
   @State categoryStats: CategoryStat[] = []
   @State monthStats: MonthStat[] = []
   @State isLoading: boolean = false
-  @State showChartMenu: boolean = false
   @State slideOffsetX: number = 0
 
   onTabChanged(): void {
-    if (this.activeTabIndex === 2) {
+    if (this.activeTabIndex === 3) {
       this.loadData()
     }
   }
@@ -66,20 +60,13 @@ export struct StatisticsPage {
   }
 
   private async loadMonthSummary(): Promise<void> {
-    const filter: FilterOptions = {
-      month: this.currentMonth,
-      type: 'all',
-      category: ''
-    }
+    const filter: FilterOptions = { month: this.currentMonth, type: 'all', category: '' }
     const bills = await BillDao.getInstance().queryByFilter(filter)
     let income = 0
     let expense = 0
     for (const bill of bills) {
-      if (bill.type === 'income') {
-        income += bill.amount
-      } else {
-        expense += bill.amount
-      }
+      if (bill.type === 'income') income += bill.amount
+      else expense += bill.amount
     }
     this.incomeTotal = income
     this.expenseTotal = expense
@@ -107,105 +94,51 @@ export struct StatisticsPage {
     }
   }
 
-  @Builder
-  ChartToggle() {
-    Row({ space: 6 }) {
-      Text('支出分布')
-        .fontSize(13)
-        .fontColor(this.chartType === 'pie' ? '#1976D2' : '#757575')
-        .fontWeight(this.chartType === 'pie' ? FontWeight.Medium : FontWeight.Normal)
-        .backgroundColor(this.chartType === 'pie' ? '#E3F2FD' : '#F5F5F5')
-        .borderRadius(16)
-        .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-        .onClick(() => { this.chartType = 'pie' })
-
-      Text('收支趋势')
-        .fontSize(13)
-        .fontColor(this.chartType === 'bar' ? '#1976D2' : '#757575')
-        .fontWeight(this.chartType === 'bar' ? FontWeight.Medium : FontWeight.Normal)
-        .backgroundColor(this.chartType === 'bar' ? '#E3F2FD' : '#F5F5F5')
-        .borderRadius(16)
-        .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-        .onClick(() => { this.chartType = 'bar' })
-    }
-  }
-
   build() {
     Column() {
-      // ── 页面标题 ──
-      NavBar({
-        title: '统计',
-        showLeft: false,
-        showDivider: true
-      })
-
-      // ── 月份导航（与账单页统一样式） ──
+      // ── 月份导航 ──
       Row() {
-        // 左箭头
-        Column() {
-          Text('‹')
-            .fontSize(24)
-            .fontColor('#1976D2')
-            .fontWeight(FontWeight.Bold)
-        }
-        .width(44)
-        .height(44)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .borderRadius(22)
-        .backgroundColor('#E3F2FD')
-        .onClick(() => { this.doMonthSwitch(1) })
+        Image($rawfile('icon_chevron_left.svg'))
+          .width(24).height(24)
+          .fillColor($r('app.color.color_primary'))
+          .padding(4)
+          .onClick(() => { this.doMonthSwitch(1) })
 
-        // 月份标题
-        Column() {
-          Text(DateUtil.formatMonthDisplay(this.currentMonth))
-            .fontSize(18)
-            .fontColor('#212121')
-            .fontWeight(FontWeight.Bold)
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-        .onClick(() => {
-          const parts = this.currentMonth.split('-')
-          const now = new Date()
-          this.getUIContext().showDatePickerDialog({
-            start: new Date('2020-01-01'),
-            end: now,
-            selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
-            lunar: false,
-            onDateAccept: (value: Date) => {
-              const y = value.getFullYear()
-              const m = (value.getMonth() + 1).toString().padStart(2, '0')
-              this.currentMonth = `${y}-${m}`
-              this.loadData()
+        Text(DateUtil.formatMonthDisplay(this.currentMonth))
+          .fontSize(16).fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_primary'))
+          .margin({ left: 16, right: 16 })
+          .onClick(() => {
+            const parts = this.currentMonth.split('-')
+            const now = new Date()
+            this.getUIContext().showDatePickerDialog({
+              start: new Date('2020-01-01'),
+              end: now,
+              selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
+              lunar: false,
+              onDateAccept: (value: Date) => {
+                const y = value.getFullYear()
+                const m = (value.getMonth() + 1).toString().padStart(2, '0')
+                this.currentMonth = `${y}-${m}`
+                this.loadData()
+              }
+            })
+          })
+
+        Image($rawfile('icon_chevron_right.svg'))
+          .width(24).height(24)
+          .fillColor(DateUtil.isCurrentMonth(this.currentMonth) ? $r('app.color.color_divider') : $r('app.color.color_primary'))
+          .padding(4)
+          .onClick(() => {
+            if (!DateUtil.isCurrentMonth(this.currentMonth)) {
+              this.doMonthSwitch(-1)
             }
           })
-        })
-
-        // 右箭头
-        Column() {
-          Text('›')
-            .fontSize(24)
-            .fontColor(DateUtil.isCurrentMonth(this.currentMonth) ? '#E0E0E0' : '#1976D2')
-            .fontWeight(FontWeight.Bold)
-        }
-        .width(44)
-        .height(44)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .borderRadius(22)
-        .backgroundColor(DateUtil.isCurrentMonth(this.currentMonth) ? '#F5F5F5' : '#E3F2FD')
-        .onClick(() => {
-          if (!DateUtil.isCurrentMonth(this.currentMonth)) {
-            this.doMonthSwitch(-1)
-          }
-        })
       }
       .width('100%')
-      .height(56)
-      .padding({ left: 12, right: 12 })
-      .alignItems(VerticalAlign.Center)
-      .backgroundColor('#FFFFFF')
+      .justifyContent(FlexAlign.Center)
+      .padding({ top: 12, bottom: 8 })
+      .backgroundColor($r('app.color.color_bg'))
 
       // ── 内容区（跟手滑动） ──
       Scroll() {
@@ -213,90 +146,98 @@ export struct StatisticsPage {
           // 汇总卡片
           SummaryCard({ income: this.incomeTotal, expense: this.expenseTotal })
 
-          // 图表类型切换
+          // 图表切换
           Row() {
-            Text(this.chartType === 'pie' ? '支出分布' : '收支趋势')
-              .fontSize(15)
-              .fontColor('#212121')
-              .fontWeight(FontWeight.Medium)
-              .layoutWeight(1)
-            this.ChartToggle()
+            Text('结构')
+              .fontSize(14)
+              .fontColor(this.chartType === 'pie' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
+              .backgroundColor(this.chartType === 'pie' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
+              .borderRadius(16)
+              .padding({ left: 16, right: 16, top: 4, bottom: 4 })
+              .onClick(() => { this.chartType = 'pie' })
+
+            Text('趋势')
+              .fontSize(14)
+              .fontColor(this.chartType === 'bar' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
+              .backgroundColor(this.chartType === 'bar' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
+              .borderRadius(16)
+              .padding({ left: 16, right: 16, top: 4, bottom: 4 })
+              .onClick(() => { this.chartType = 'bar' })
           }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+          .justifyContent(FlexAlign.Center)
+          .margin({ top: 8, bottom: 16 })
+          .padding(4)
+          .backgroundColor($r('app.color.color_divider'))
+          .borderRadius(20)
 
-          Divider()
-            .color('#E0E0E0')
-            .margin({ left: 16, right: 16 })
-
+          // 图表区域
           if (this.chartType === 'pie') {
-            // 饼图
             Column() {
               PieChart({ data: this.categoryStats })
-                .margin({ top: 8 })
-
-              // 分类明细
-              if (this.categoryStats.length > 0) {
-                Column() {
-                  ForEach(this.categoryStats, (stat: CategoryStat) => {
-                    Row() {
-                      Column()
-                        .width(10)
-                        .height(10)
-                        .backgroundColor(stat.color)
-                        .borderRadius(2)
-                        .margin({ right: 10 })
-
-                      Text(stat.category)
-                        .fontSize(14)
-                        .fontColor('#212121')
-                        .layoutWeight(1)
-
-                      Text(`¥${AmountUtil.fen2Display(stat.total)}`)
-                        .fontSize(14)
-                        .fontColor('#212121')
-                        .margin({ right: 8 })
-
-                      Text(`${stat.percent}%`)
-                        .fontSize(12)
-                        .fontColor('#757575')
-                        .width(40)
-                        .textAlign(TextAlign.End)
-                    }
-                    .width('100%')
-                    .padding({ top: 10, bottom: 10 })
-
-                    Divider().color('#E0E0E0')
-                  })
-                }
-                .width('100%')
-                .padding({ left: 16, right: 16, bottom: 16 })
-                .backgroundColor('#FFFFFF')
-                .borderRadius(12)
-                .margin({ left: 16, right: 16, top: 8, bottom: 16 })
-              } else {
-                Column() {
-                  Text('本月暂无支出记录')
-                    .fontSize(14)
-                    .fontColor('#757575')
-                    .padding({ top: 16, bottom: 16 })
-                }
-                .width('100%')
-                .alignItems(HorizontalAlign.Center)
-              }
             }
-            .width('100%')
+            .width('calc(100% - 32vp)')
+            .backgroundColor($r('app.color.color_surface'))
+            .borderRadius(24)
+            .margin({ left: 16, right: 16 })
+            .shadow({ radius: 12, color: 'rgba(44, 122, 123, 0.1)', offsetY: 4 })
+
+            // 分类明细列表
+            if (this.categoryStats.length > 0) {
+              Column() {
+                ForEach(this.categoryStats, (stat: CategoryStat) => {
+                  Row() {
+                    Column()
+                      .width(10).height(10)
+                      .backgroundColor(stat.color)
+                      .borderRadius(5)
+                      .margin({ right: 10 })
+
+                    Text(stat.category)
+                      .fontSize(14)
+                      .fontColor($r('app.color.color_text_primary'))
+                      .layoutWeight(1)
+
+                    Text(`¥${AmountUtil.fen2Display(stat.total)}`)
+                      .fontSize(14)
+                      .fontColor($r('app.color.color_text_primary'))
+                      .margin({ right: 8 })
+
+                    Text(`${stat.percent}%`)
+                      .fontSize(12)
+                      .fontColor($r('app.color.color_text_secondary'))
+                      .width(40)
+                      .textAlign(TextAlign.End)
+                  }
+                  .width('100%')
+                  .padding({ top: 10, bottom: 10 })
+
+                  Divider().color($r('app.color.color_divider'))
+                })
+              }
+              .width('calc(100% - 32vp)')
+              .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+              .backgroundColor($r('app.color.color_surface'))
+              .borderRadius(24)
+              .margin({ left: 16, right: 16, top: 12, bottom: 16 })
+              .shadow({ radius: 12, color: 'rgba(44, 122, 123, 0.1)', offsetY: 4 })
+            } else {
+              Text('本月暂无支出记录')
+                .fontSize(14)
+                .fontColor($r('app.color.color_text_secondary'))
+                .padding({ top: 24, bottom: 24 })
+            }
           } else {
             // 柱状图
             Column() {
               BarChart({ data: this.monthStats })
                 .margin({ top: 8, bottom: 16 })
             }
-            .width('100%')
+            .width('calc(100% - 32vp)')
             .padding({ left: 16, right: 16 })
-            .backgroundColor('#FFFFFF')
-            .borderRadius(12)
-            .margin({ left: 16, right: 16, top: 8, bottom: 16 })
+            .backgroundColor($r('app.color.color_surface'))
+            .borderRadius(24)
+            .margin({ left: 16, right: 16, bottom: 16 })
+            .shadow({ radius: 12, color: 'rgba(44, 122, 123, 0.1)', offsetY: 4 })
           }
         }
         .width('100%')
@@ -311,11 +252,9 @@ export struct StatisticsPage {
           })
           .onActionEnd((event: GestureEvent) => {
             if (!event) { this.slideOffsetX = 0; return }
-            if (event.offsetX > 80) {
-              this.doMonthSwitch(1)
-            } else if (event.offsetX < -80) {
-              this.doMonthSwitch(-1)
-            } else {
+            if (event.offsetX > 80) { this.doMonthSwitch(1) }
+            else if (event.offsetX < -80) { this.doMonthSwitch(-1) }
+            else {
               this.getUIContext().animateTo(
                 { duration: 150, curve: Curve.EaseOut },
                 () => { this.slideOffsetX = 0 }

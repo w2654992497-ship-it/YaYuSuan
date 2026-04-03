@@ -1,6 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit'
 import { window, display } from '@kit.ArkUI'
 import { DBHelper } from '../database/DBHelper'
+import { CategoryDao } from '../database/CategoryDao'
 import { LogUtils } from '../utils/LogUtils'
 
 export default class EntryAbility extends UIAbility {
@@ -12,8 +13,9 @@ export default class EntryAbility extends UIAbility {
     }
     LogUtils.info('EntryAbility', 'onCreate')
 
-    DBHelper.getInstance().init(this.context).then(() => {
-      LogUtils.info('EntryAbility', 'Database initialized')
+    DBHelper.getInstance().init(this.context).then(async () => {
+      await CategoryDao.getInstance().refreshCache()
+      LogUtils.info('EntryAbility', 'Database and category cache initialized')
     }).catch((err: Error) => {
       LogUtils.error('EntryAbility', 'Database init failed: %{public}s', JSON.stringify(err))
     })
@@ -55,6 +57,10 @@ export default class EntryAbility extends UIAbility {
         AppStorage.setOrCreate('navBarHeight', nbVp)
         // 存储 window 实例，供页面动态切换状态栏图标色
         AppStorage.setOrCreate('mainWindow', mainWindow)
+        AppStorage.setOrCreate('showCategoryEditor', false)
+        AppStorage.setOrCreate('editCategorySelected', '')
+        AppStorage.setOrCreate('editCategoryType', 'expense')
+        AppStorage.setOrCreate('categoryVersion', 0)
 
         LogUtils.info('EntryAbility',
           'safeArea statusBar=%{public}s navBar=%{public}s vp',

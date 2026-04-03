@@ -14,62 +14,64 @@ export struct SummaryCard {
           .fontColor('rgba(255,255,255,0.75)')
           .margin({ bottom: 6 })
         Text(`¥${AmountUtil.fen2Display(this.expense)}`)
-          .fontSize(34)
-          .fontColor('#FFFFFF')
+          .fontSize(36)
+          .fontColor($r('app.color.color_surface'))
           .fontWeight(FontWeight.Bold)
           .letterSpacing(1)
       }
-      .alignItems(HorizontalAlign.Center)
-      .padding({ top: 20, bottom: 16 })
+      .alignItems(HorizontalAlign.Start) // 改为左对齐
+      .width('100%')
+      .padding({ top: 24, left: 24, bottom: 16 })
 
       // 分隔线
       Divider()
-        .color('rgba(255,255,255,0.2)')
-        .margin({ left: 20, right: 20 })
+        .color('rgba(255,255,255,0.15)')
+        .width('100%')
 
       // 收入 / 结余 行
       Row() {
         Column() {
           Text('收入')
-            .fontSize(11)
-            .fontColor('rgba(255,255,255,0.65)')
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.7)')
             .margin({ bottom: 4 })
           Text(`+¥${AmountUtil.fen2Display(this.income)}`)
-            .fontSize(15)
-            .fontColor('#FFFFFF')
+            .fontSize(16)
+            .fontColor($r('app.color.color_surface'))
             .fontWeight(FontWeight.Medium)
         }
         .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
+        .alignItems(HorizontalAlign.Start)
 
         Divider()
           .vertical(true)
-          .height(32)
-          .color('rgba(255,255,255,0.2)')
+          .height(28)
+          .color('rgba(255,255,255,0.15)')
 
         Column() {
           Text('结余')
-            .fontSize(11)
-            .fontColor('rgba(255,255,255,0.65)')
+            .fontSize(12)
+            .fontColor('rgba(255,255,255,0.7)')
             .margin({ bottom: 4 })
           Text(`¥${AmountUtil.fen2Display(Math.abs(this.income - this.expense))}`)
-            .fontSize(15)
-            .fontColor((this.income - this.expense) >= 0 ? '#A5D6A7' : '#FFCDD2')
+            .fontSize(16)
+            .fontColor((this.income - this.expense) >= 0 ? $r('app.color.color_duck') : $r('app.color.color_expense'))
             .fontWeight(FontWeight.Medium)
         }
         .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
+        .alignItems(HorizontalAlign.Start)
+        .padding({ left: 24 })
       }
       .width('100%')
-      .padding({ top: 14, bottom: 20 })
+      .padding({ top: 16, left: 24, bottom: 20 })
     }
-    .width('100%')
+    .width('calc(100% - 32vp)')
     .linearGradient({
-      angle: 150,
-      colors: [['#1E88E5', 0.0], ['#0D47A1', 1.0]]
+      direction: GradientDirection.RightBottom, // 水流渐变方向
+      colors: [['#457B9D', 0.0], ['#1D3557', 1.0]] // 深水青到深蓝灰
     })
-    .borderRadius(16)
-    .margin({ left: 16, right: 16, top: 8, bottom: 8 })
-    .shadow({ radius: 16, color: '#401976D2', offsetX: 0, offsetY: 6 })
+    .borderRadius(24) // 水滴大圆角
+    .margin({ left: 16, right: 16, top: 12, bottom: 12 })
+    .shadow({ radius: 20, color: 'rgba(44, 122, 123, 0.25)', offsetX: 0, offsetY: 8 }) // 更弥散的同色系阴影
   }
 }

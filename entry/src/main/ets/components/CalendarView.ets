@@ -7,7 +7,8 @@ import { BillItem } from './BillItem'
 import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
 import { LogUtils } from '../utils/LogUtils'
-import { EXPENSE_CATEGORIES } from '../model/Category'
+import { CategoryRecord } from '../model/Category'
+import { CategoryDao } from '../database/CategoryDao'
 import { preferences } from '@kit.ArkData'
 
 interface BudgetProgress {
@@ -68,8 +69,9 @@ export struct CalendarView {
         usageMap.set(b.category, (usageMap.get(b.category) ?? 0) + b.amount)
       }
       const result: BudgetProgress[] = []
-      for (const cat of EXPENSE_CATEGORIES) {
-        const budgetFen = await pref.get(`budget_${cat.name}`, 0) as number
+      const categories: CategoryRecord[] = await CategoryDao.getInstance().queryByType('expense')
+      for (const cat of categories) {
+        const budgetFen = await pref.get(`budget_id_${cat.id}`, 0) as number
         if (budgetFen > 0) {
           result.push({ name: cat.name, color: cat.color, budgetFen: budgetFen, usedFen: usageMap.get(cat.name) ?? 0 })
         }
@@ -274,7 +276,7 @@ export struct CalendarView {
                 ListItem() {
                   BillItem({
                     bill: bill,
-                    onDelete: (id: number) => { this.onDeleteBill(id) }
+                    onDelete: () => { this.onDeleteBill(bill.id) }
                   })
                 }
                 .swipeAction({ end: () => { this.DeleteBuilder(bill) } })

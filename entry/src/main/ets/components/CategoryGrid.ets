@@ -1,51 +1,41 @@
-import { CategoryInfo, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../model/Category'
+import { CategoryRecord } from '../model/Category'
 
 @Component
 export struct CategoryGrid {
   @Prop billType: 'income' | 'expense' = 'expense'
   @Prop selected: string = ''
+  @Prop categories: CategoryRecord[] = []
   onSelect: (category: string) => void = () => {}
-
-  private getCategories(): CategoryInfo[] {
-    return this.billType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
-  }
 
   build() {
     Grid() {
-      ForEach(this.getCategories(), (item: CategoryInfo) => {
+      ForEach(this.categories, (item: CategoryRecord) => {
         GridItem() {
           Column() {
             Column() {
               Image($rawfile(item.icon + '.svg'))
-                .width(20)
-                .height(20)
-                .fillColor(this.selected === item.name ? '#1976D2' : '#757575')
+                .width(22).height(22)
+                .fillColor(this.selected === item.name ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
             }
-            .width(40)
-            .height(40)
-            .borderRadius(20)
-            .backgroundColor(this.selected === item.name ? '#E3F2FD' : '#F5F5F5')
+            .width(44).height(44).borderRadius(22)
+            .backgroundColor(this.selected === item.name ? item.color : $r('app.color.color_bg'))
             .alignItems(HorizontalAlign.Center)
             .justifyContent(FlexAlign.Center)
-            .border(this.selected === item.name
-              ? { width: 1.5, color: '#1976D2' }
-              : { width: 0 })
+            .animation({ duration: 200, curve: Curve.EaseOut })
 
             Text(item.name)
               .fontSize(11)
-              .fontColor(this.selected === item.name ? '#1976D2' : '#757575')
+              .fontColor(this.selected === item.name ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
               .fontWeight(this.selected === item.name ? FontWeight.Medium : FontWeight.Normal)
               .margin({ top: 4 })
           }
           .width('100%')
           .padding({ top: 8, bottom: 8 })
           .alignItems(HorizontalAlign.Center)
-          .onClick(() => {
-            this.onSelect(item.name)
-          })
+          .onClick(() => { this.onSelect(item.name) })
         }
         .padding({ left: 4, right: 4 })
-      })
+      }, (item: CategoryRecord) => item.id.toString())
     }
     .columnsTemplate('1fr 1fr 1fr 1fr')
     .width('100%')
