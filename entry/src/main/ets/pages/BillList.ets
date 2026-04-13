@@ -110,6 +110,22 @@ export struct BillListPage {
 
   build() {
     Column() {
+      // ── 品牌头 ──
+      Row() {
+        Text('Duck Pond 🦆🎓')
+          .fontSize(22)
+          .fontWeight(FontWeight.Bolder)
+          .fontColor($r('app.color.color_text_primary'))
+          .fontFamily('cursive') // Add a slight playful font vibe if available
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      .padding({ top: 24, bottom: 16 })
+      .backgroundColor($r('app.color.color_primary'))
+      .borderRadius({ bottomLeft: 24, bottomRight: 24 })
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.05)', offsetY: 4 })
+      .zIndex(10)
+
       // ── 月份导航栏 ──
       Row() {
         Row() {

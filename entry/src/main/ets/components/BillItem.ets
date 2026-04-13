@@ -61,14 +61,16 @@ export struct BillItem {
         Text(`${this.bill.type === 'income' ? '+' : '-'}¥${AmountUtil.fen2Display(this.bill.amount)}`)
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.bill.type === 'income' ? $r('app.color.color_income') : $r('app.color.color_text_primary'))
+          .fontColor(this.bill.type === 'income' ? $r('app.color.color_income') : $r('app.color.color_expense'))
+          .fontFamily('cursive')
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 12, bottom: 12 })
       .backgroundColor($r('app.color.color_surface'))
       .borderRadius(16)
       .margin({ top: 4, bottom: 4 })
-      .shadow({ radius: 8, color: 'rgba(0,0,0,0.02)', offsetY: 4 })
+      .border({ width: 1, color: 'rgba(0,0,0,0.05)', radius: 16 })
+      .shadow({ radius: 0, color: 'rgba(43,45,66,0.1)', offsetX: 4, offsetY: 4 }) // Neo-brutalism flat offset shadow
     }
     .swipeAction({ end: this.DeleteButton() })
     .margin({ left: 16, right: 16 })

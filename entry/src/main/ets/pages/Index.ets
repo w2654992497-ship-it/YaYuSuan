@@ -1,4 +1,4 @@
-﻿import { BillListPage } from './BillList'
+import { BillListPage } from './BillList'
 import { CalendarPage } from './Calendar'
 import { AddBillPage } from './AddBill'
 import { StatisticsPage } from './Statistics'
@@ -71,8 +71,8 @@ struct Index {
           Circle()
             .width(52)
             .height(52)
-            .fill($r('app.color.color_primary'))
-            .shadow({ radius: 10, color: 'rgba(44, 122, 123, 0.4)', offsetY: 4 })
+            .fill($r('app.color.color_accent'))
+            .shadow({ radius: 10, color: 'rgba(245, 158, 12, 0.4)', offsetY: 4 })
 
           Image(item.defaultImage)
             .width(24)
@@ -92,13 +92,13 @@ struct Index {
         Text(item.title)
           .fontSize(10)
           .margin({ top: -10 })
-          .fontColor(this.currentTabIndex === index ? $r('app.color.color_primary') : $r('app.color.color_tab_inactive'))
+          .fontColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') : $r('app.color.color_tab_inactive'))
           .animation({ duration: 300, curve: Curve.Ease })
       } else { // 常规侧边按钮
         Image(item.defaultImage)
           .width(24)
           .height(24)
-          .fillColor(this.currentTabIndex === index ? $r('app.color.color_primary') : $r('app.color.color_tab_inactive'))
+          .fillColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') : $r('app.color.color_tab_inactive'))
           .offset({ y: this.currentTabIndex === index ? -4 : 0 })
           .scale(this.currentTabIndex === index ? { x: 1.1, y: 1.1 } : { x: 1, y: 1 })
           .animation({ duration: 300, curve: Curve.Ease })
@@ -106,7 +106,7 @@ struct Index {
         Text(item.title)
           .fontSize(10)
           .margin({ top: 4 })
-          .fontColor(this.currentTabIndex === index ? $r('app.color.color_primary') : $r('app.color.color_tab_inactive'))
+          .fontColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') : $r('app.color.color_tab_inactive'))
           .animation({ duration: 300, curve: Curve.Ease })
       }
     }
