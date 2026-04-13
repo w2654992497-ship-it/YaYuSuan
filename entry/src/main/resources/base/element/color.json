@@ -2,19 +2,19 @@
   "color": [
     {
       "name": "start_window_background",
-      "value": "#F0F4F8"
+      "value": "#F8F9FA"
     },
     {
       "name": "color_income",
-      "value": "#059669"
+      "value": "#76B041"
     },
     {
       "name": "color_expense",
-      "value": "#E11D48"
+      "value": "#EF476F"
     },
     {
       "name": "color_primary",
-      "value": "#2C7A7B"
+      "value": "#FFD166"
     },
     {
       "name": "color_surface",
@@ -22,7 +22,7 @@
     },
     {
       "name": "color_bg",
-      "value": "#F0F4F8"
+      "value": "#F8F9FA"
     },
     {
       "name": "color_card",
@@ -30,15 +30,15 @@
     },
     {
       "name": "color_text_primary",
-      "value": "#1A202C"
+      "value": "#2B2D42"
     },
     {
       "name": "color_text_secondary",
-      "value": "#718096"
+      "value": "#98A2B3"
     },
     {
       "name": "color_divider",
-      "value": "#E2E8F0"
+      "value": "#EAECF0"
     },
     {
       "name": "color_tab_inactive",
@@ -46,11 +46,19 @@
     },
     {
       "name": "color_accent",
-      "value": "#F59E0B"
+      "value": "#F59E0C"
     },
     {
       "name": "color_duck",
-      "value": "#F59E0B"
+      "value": "#FFD166"
+    },
+    {
+      "name": "color_pie_water_light",
+      "value": "#8ECAE6"
+    },
+    {
+      "name": "color_pie_water_dark",
+      "value": "#219EBC"
     }
   ]
 }

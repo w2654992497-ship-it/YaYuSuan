@@ -179,7 +179,8 @@ export struct StatisticsPage {
             .backgroundColor($r('app.color.color_surface'))
             .borderRadius(24)
             .margin({ left: 16, right: 16 })
-            .shadow({ radius: 12, color: 'rgba(44, 122, 123, 0.1)', offsetY: 4 })
+            .border({ width: 1, color: 'rgba(0,0,0,0.05)', radius: 24 })
+            .shadow({ radius: 0, color: 'rgba(43,45,66,0.1)', offsetX: 4, offsetY: 4 })
 
             // 分类明细列表
             if (this.categoryStats.length > 0) {
@@ -219,7 +220,8 @@ export struct StatisticsPage {
               .backgroundColor($r('app.color.color_surface'))
               .borderRadius(24)
               .margin({ left: 16, right: 16, top: 12, bottom: 16 })
-              .shadow({ radius: 12, color: 'rgba(44, 122, 123, 0.1)', offsetY: 4 })
+              .border({ width: 1, color: 'rgba(0,0,0,0.05)', radius: 24 })
+              .shadow({ radius: 0, color: 'rgba(43,45,66,0.1)', offsetX: 4, offsetY: 4 })
             } else {
               Text('本月暂无支出记录')
                 .fontSize(14)
@@ -237,7 +239,8 @@ export struct StatisticsPage {
             .backgroundColor($r('app.color.color_surface'))
             .borderRadius(24)
             .margin({ left: 16, right: 16, bottom: 16 })
-            .shadow({ radius: 12, color: 'rgba(44, 122, 123, 0.1)', offsetY: 4 })
+            .border({ width: 1, color: 'rgba(0,0,0,0.05)', radius: 24 })
+            .shadow({ radius: 0, color: 'rgba(43,45,66,0.1)', offsetX: 4, offsetY: 4 })
           }
         }
         .width('100%')

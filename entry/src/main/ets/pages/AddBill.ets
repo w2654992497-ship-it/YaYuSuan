@@ -196,40 +196,40 @@ export struct AddBillPage {
           Row() {
             Text('支出').fontSize(15)
               .fontWeight(this.billType === 'expense' ? FontWeight.Bold : FontWeight.Normal)
-              .fontColor(this.billType === 'expense' ? $r('app.color.color_duck') : $r('app.color.color_surface'))
-              .backgroundColor(this.billType === 'expense' ? $r('app.color.color_surface') : Color.Transparent)
+              .fontColor(this.billType === 'expense' ? $r('app.color.color_surface') : $r('app.color.color_text_primary'))
+              .backgroundColor(this.billType === 'expense' ? $r('app.color.color_text_primary') : Color.Transparent)
               .borderRadius(16).padding({ left: 28, right: 28, top: 6, bottom: 6 })
               .animation({ duration: 250, curve: Curve.FastOutSlowIn })
               .onClick(() => { this.billType = 'expense'; this.selectedCategory = '' })
 
             Text('收入').fontSize(15)
               .fontWeight(this.billType === 'income' ? FontWeight.Bold : FontWeight.Normal)
-              .fontColor(this.billType === 'income' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
-              .backgroundColor(this.billType === 'income' ? $r('app.color.color_surface') : Color.Transparent)
+              .fontColor(this.billType === 'income' ? $r('app.color.color_surface') : $r('app.color.color_text_primary'))
+              .backgroundColor(this.billType === 'income' ? $r('app.color.color_text_primary') : Color.Transparent)
               .borderRadius(16).padding({ left: 28, right: 28, top: 6, bottom: 6 })
               .animation({ duration: 250, curve: Curve.FastOutSlowIn })
               .onClick(() => { this.billType = 'income'; this.selectedCategory = '' })
           }
-          .backgroundColor('rgba(255,255,255,0.2)').borderRadius(20).padding(4)
+          .backgroundColor('rgba(0,0,0,0.05)').borderRadius(20).padding(4)
         }
         .width('100%').justifyContent(FlexAlign.Center).padding({ top: 12, bottom: 16 })
 
         // 金额输入
         Column() {
           Text('金额').fontSize(13)
-            .fontColor(this.isAmountFocused ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.6)')
+            .fontColor(this.isAmountFocused ? $r('app.color.color_text_primary') : 'rgba(43,45,66,0.6)')
             .width('100%').padding({ left: 24, bottom: 4 }).animation({ duration: 200 })
 
           Row() {
             Text('¥').fontSize(40).fontWeight(FontWeight.Bold)
               .fontColor(this.isAmountFocused || this.amountText.length > 0
-                ? $r('app.color.color_surface') : 'rgba(255,255,255,0.45)')
+                ? $r('app.color.color_text_primary') : 'rgba(43,45,66,0.45)')
               .margin({ right: 4 }).animation({ duration: 200, curve: Curve.EaseOut })
 
             TextInput({ text: this.amountText, placeholder: '0.00' })
               .type(InputType.NUMBER_DECIMAL).fontSize(40).fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.color_surface')).placeholderColor('rgba(255,255,255,0.35)')
-              .backgroundColor(Color.Transparent).caretColor($r('app.color.color_surface'))
+              .fontColor($r('app.color.color_text_primary')).placeholderColor('rgba(43,45,66,0.35)')
+              .backgroundColor(Color.Transparent).caretColor($r('app.color.color_text_primary'))
               .caretStyle({ width: 2.5 }).border({ width: 0 }).borderRadius(0).padding(0)
               .layoutWeight(1).maxLength(10).enterKeyType(EnterKeyType.Done)
               .onEditChange((isEditing: boolean) => { this.isAmountFocused = isEditing })
@@ -238,7 +238,7 @@ export struct AddBillPage {
           .width('100%').padding({ left: 24, right: 24 }).alignItems(VerticalAlign.Center)
 
           Row().width(this.isAmountFocused ? 140 : 50).height(2.5)
-            .backgroundColor(this.isAmountFocused ? '#FFFFFF' : 'rgba(255,255,255,0.25)')
+            .backgroundColor(this.isAmountFocused ? $r('app.color.color_text_primary') : 'rgba(43,45,66,0.25)')
             .borderRadius(1.5).margin({ top: 6 }).animation({ duration: 250, curve: Curve.EaseOut })
         }
         .alignItems(HorizontalAlign.Center).padding({ bottom: 16 })
@@ -246,18 +246,18 @@ export struct AddBillPage {
         // 日期胶囊
         Row() {
           Image($rawfile('icon_calendar.svg')).width(14).height(14)
-            .fillColor('rgba(255,255,255,0.8)').margin({ right: 6 })
-          Text(this.selectedDate).fontSize(13).fontColor('rgba(255,255,255,0.8)')
+            .fillColor('rgba(43,45,66,0.8)').margin({ right: 6 })
+          Text(this.selectedDate).fontSize(13).fontColor('rgba(43,45,66,0.8)')
         }
         .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-        .backgroundColor('rgba(0,0,0,0.12)').borderRadius(16)
+        .backgroundColor('rgba(43,45,66,0.06)').borderRadius(16)
         .margin({ bottom: 24 }).onClick(() => this.showDatePicker())
       }
       .width('100%').alignItems(HorizontalAlign.Center)
-      .backgroundColor(this.billType === 'expense' ? $r('app.color.color_duck') : $r('app.color.color_primary'))
+      .backgroundColor($r('app.color.color_primary'))
       .animation({ duration: 300, curve: Curve.FastOutSlowIn })
       .borderRadius({ bottomLeft: 28, bottomRight: 28 })
-      .shadow({ radius: 12, color: 'rgba(0,0,0,0.1)', offsetY: 6 }).zIndex(1)
+      .shadow({ radius: 12, color: 'rgba(0,0,0,0.05)', offsetY: 6 }).zIndex(1)
 
       // ── 白色内容区 ──
       Scroll() {
@@ -314,14 +314,16 @@ export struct AddBillPage {
           // 保存按钮
           Button('保存账单')
             .width('calc(100% - 32vp)').height(52)
-            .backgroundColor(this.billType === 'expense' ? $r('app.color.color_duck') : $r('app.color.color_primary'))
-            .fontColor($r('app.color.color_surface')).fontSize(17).fontWeight(FontWeight.Bold).borderRadius(26)
+            .backgroundColor($r('app.color.color_accent'))
+            .fontColor($r('app.color.color_surface')).fontSize(17).fontWeight(FontWeight.Bold).borderRadius(12)
             .animation({ duration: 300 })
             .shadow({
-              radius: 10,
-              color: this.billType === 'expense' ? 'rgba(245,158,11,0.35)' : 'rgba(44,122,123,0.35)',
-              offsetY: 5
+              radius: 0,
+              color: 'rgba(43,45,66,0.1)',
+              offsetX: 4,
+              offsetY: 4
             })
+            .border({ width: 1, color: 'rgba(0,0,0,0.05)', radius: 12 })
             .margin({ left: 16, right: 16, top: 24, bottom: 32 })
             .onClick(() => this.submit())
         }

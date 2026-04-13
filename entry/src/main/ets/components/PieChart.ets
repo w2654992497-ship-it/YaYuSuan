@@ -33,15 +33,18 @@ export struct PieChart {
       // Inner hole
       ctx.beginPath()
       ctx.arc(cx, cy, r * 0.55, 0, 2 * Math.PI)
-      ctx.fillStyle = '#FFFFFF'
+      ctx.fillStyle = '#F8F9FA'
       ctx.fill()
 
       // No data text
-      ctx.fillStyle = '#757575'
+      ctx.fillStyle = '#98A2B3'
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('暂无数据', cx, cy)
+      ctx.fillText('暂无数据', cx, cy + 16)
+      
+      ctx.font = '24px sans-serif'
+      ctx.fillText('🦆✨', cx, cy - 10)
       return
     }
 
@@ -54,6 +57,9 @@ export struct PieChart {
     let startAngle = -Math.PI / 2
     const total = this.data.reduce((sum, s) => sum + s.total, 0)
 
+    const waterBlues = ['#EF476F', '#8ECAE6', '#219EBC', '#A8DADC', '#457B9D', '#1D3557', '#F1FAEE', '#8ECAE6'];
+    let idx = 0;
+
     for (const stat of this.data) {
       if (stat.total <= 0) {
         continue
@@ -65,29 +71,34 @@ export struct PieChart {
       ctx.arc(cx, cy, outerR, startAngle + gap / 2, startAngle + sliceAngle + gap / 2)
       ctx.arc(cx, cy, innerR, startAngle + sliceAngle + gap / 2, startAngle + gap / 2, true)
       ctx.closePath()
-      ctx.fillStyle = stat.color
+      ctx.fillStyle = waterBlues[idx % waterBlues.length]
       ctx.fill()
 
       startAngle += sliceAngle + gap
+      idx++
     }
 
     // Draw inner white hole
     ctx.beginPath()
     ctx.arc(cx, cy, innerR, 0, 2 * Math.PI)
-    ctx.fillStyle = '#FFFFFF'
+    ctx.fillStyle = '#F8F9FA'
     ctx.fill()
 
     // Center text: total amount
-    ctx.fillStyle = '#212121'
+    ctx.fillStyle = '#2B2D42'
     ctx.font = 'bold 16px sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(`¥${AmountUtil.fen2Display(total)}`, cx, cy - 10)
+    ctx.fillText(`¥${AmountUtil.fen2Display(total)}`, cx, cy - 2)
 
     // Center label
-    ctx.fillStyle = '#757575'
+    ctx.fillStyle = '#98A2B3'
     ctx.font = '12px sans-serif'
-    ctx.fillText('总支出', cx, cy + 14)
+    ctx.fillText('总支出', cx, cy + 18)
+
+    // Center emoji
+    ctx.font = '26px sans-serif'
+    ctx.fillText('🦆☹️', cx, cy - 26)
   }
 
   build() {
