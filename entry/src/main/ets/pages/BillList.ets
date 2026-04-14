@@ -112,7 +112,7 @@ export struct BillListPage {
     Column() {
       // ── 品牌头 ──
       Row() {
-        Text('Duck Pond 🦆🎓')
+        Text('鸭鱼算')
           .fontSize(22)
           .fontWeight(FontWeight.Bolder)
           .fontColor($r('app.color.color_text_primary'))
