@@ -41,10 +41,7 @@ export struct PieChart {
       ctx.font = '14px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('暂无数据', cx, cy + 16)
-      
-      ctx.font = '24px sans-serif'
-      ctx.fillText('🦆✨', cx, cy - 10)
+      ctx.fillText('暂无数据', cx, cy)
       return
     }
 
@@ -89,16 +86,12 @@ export struct PieChart {
     ctx.font = 'bold 16px sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(`¥${AmountUtil.fen2Display(total)}`, cx, cy - 2)
+    ctx.fillText(`¥${AmountUtil.fen2Display(total)}`, cx, cy - 6)
 
     // Center label
     ctx.fillStyle = '#98A2B3'
     ctx.font = '12px sans-serif'
-    ctx.fillText('总支出', cx, cy + 18)
-
-    // Center emoji
-    ctx.font = '26px sans-serif'
-    ctx.fillText('🦆☹️', cx, cy - 26)
+    ctx.fillText('总支出', cx, cy + 14)
   }
 
   build() {

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="45" fill="#98A2B3" />
+    <!-- Sad eyes -->
+    <path d="M30 40 L45 45" stroke="#2B2D42" stroke-width="4" stroke-linecap="round" />
+    <path d="M70 40 L55 45" stroke="#2B2D42" stroke-width="4" stroke-linecap="round" />
+    <!-- Closed eye arcs -->
+    <path d="M32 46 Q37 50 42 46" stroke="#2B2D42" stroke-width="3" stroke-linecap="round" fill="none" />
+    <path d="M68 46 Q63 50 58 46" stroke="#2B2D42" stroke-width="3" stroke-linecap="round" fill="none" />
+    <!-- Sad beak -->
+    <path d="M40 65 Q50 55 60 65" stroke="#F59E0C" stroke-width="6" stroke-linecap="round" fill="none" />
+    <path d="M45 62 Q50 58 55 62" stroke="#F59E0C" stroke-width="4" stroke-linecap="round" fill="none" />
+    <!-- Tear -->
+    <path d="M37 55 Q37 62 40 60 Q34 60 37 55 Z" fill="#219EBC" />
+</svg>

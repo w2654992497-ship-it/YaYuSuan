@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="45" fill="#FFD166" />
+    <circle cx="35" cy="40" r="5" fill="#2B2D42" />
+    <circle cx="65" cy="40" r="5" fill="#2B2D42" />
+    <path d="M40 55 Q50 65 60 55" stroke="#F59E0C" stroke-width="6" stroke-linecap="round" fill="none" />
+    <path d="M45 58 Q50 62 55 58" stroke="#F59E0C" stroke-width="4" stroke-linecap="round" fill="none" />
+    <!-- Graduation Cap -->
+    <path d="M50 10 L20 25 L50 40 L80 25 Z" fill="#2B2D42" />
+    <path d="M50 40 L50 45" stroke="#2B2D42" stroke-width="2" />
+    <path d="M75 27 L75 45" stroke="#2B2D42" stroke-width="2" />
+    <circle cx="75" cy="45" r="3" fill="#F59E0C" />
+</svg>
