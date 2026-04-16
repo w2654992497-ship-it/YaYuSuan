@@ -5,6 +5,8 @@ import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
 import { SummaryCard } from '../components/SummaryCard'
 import { BillItem } from '../components/BillItem'
+import { MonthSelector } from '../components/MonthSelector'
+import { BillSearchPage } from './BillSearchPage'
 
 interface BillGroupData {
   date: string
@@ -17,11 +19,15 @@ interface BillGroupData {
 export struct BillListPage {
   @Watch('onTabChanged')
   @Consume activeTabIndex: number
+  @Watch('onCategoryVersionChanged')
+  @StorageProp('categoryVersion') categoryVersion: number = 0
   @State billGroups: BillGroupData[] = []
   @State filter: FilterOptions = { month: DateUtil.currentMonth(), type: 'all', category: '' }
   @State totalIncome: number = 0
   @State totalExpense: number = 0
   @State slideOffsetX: number = 0
+  @State showSearchPage: boolean = false
+  @StorageProp('statusBarHeight') sbHeight: number = 0
 
   onTabChanged(): void {
     if (this.activeTabIndex === 0) {
@@ -33,6 +39,10 @@ export struct BillListPage {
     this.loadData()
   }
 
+  onCategoryVersionChanged(): void {
+    this.loadData()
+  }
+
   async loadData(): Promise<void> {
     const bills = await BillDao.getInstance().queryByFilter(this.filter)
     const groupMap = new Map<string, BillGroupData>()
@@ -40,16 +50,27 @@ export struct BillListPage {
     let exp = 0
 
     for (const bill of bills) {
-      if (bill.type === 'income') inc += bill.amount
-      else exp += bill.amount
+      if (bill.type === 'income') {
+        inc += bill.amount
+      } else {
+        exp += bill.amount
+      }
 
       if (!groupMap.has(bill.date)) {
-        groupMap.set(bill.date, { date: bill.date, bills: [], dayIncome: 0, dayExpense: 0 })
+        groupMap.set(bill.date, {
+          date: bill.date,
+          bills: [],
+          dayIncome: 0,
+          dayExpense: 0
+        })
       }
       const g = groupMap.get(bill.date)!
       g.bills.push(bill)
-      if (bill.type === 'income') g.dayIncome += bill.amount
-      else g.dayExpense += bill.amount
+      if (bill.type === 'income') {
+        g.dayIncome += bill.amount
+      } else {
+        g.dayExpense += bill.amount
+      }
     }
 
     this.billGroups = Array.from(groupMap.values()).sort((a, b) => b.date.localeCompare(a.date))
@@ -92,7 +113,12 @@ export struct BillListPage {
       .fontWeight(this.filter.type === chipType ? FontWeight.Medium : FontWeight.Normal)
       .backgroundColor(this.filter.type === chipType ? $r('app.color.color_primary') : $r('app.color.color_surface'))
       .borderRadius(16)
-      .padding({ left: 16, right: 16, top: 5, bottom: 5 })
+      .padding({
+        left: 16,
+        right: 16,
+        top: 5,
+        bottom: 5
+      })
       .animation({ duration: 200, curve: Curve.EaseOut })
       .onClick(() => {
         this.filter = { month: this.filter.month, type: chipType, category: this.filter.category }
@@ -103,87 +129,54 @@ export struct BillListPage {
   // 日净额格式化
   private dayNetDisplay(group: BillGroupData): string {
     const net = group.dayIncome - group.dayExpense
-    if (net > 0) return `+${AmountUtil.fen2Display(net)}`
-    if (net < 0) return `-${AmountUtil.fen2Display(net * -1)}`
+    if (net > 0) {
+      return `+${AmountUtil.fen2Display(net)}`
+    }
+    if (net < 0) {
+      return `-${AmountUtil.fen2Display(net * -1)}`
+    }
     return '0.00'
   }
 
   build() {
-    Column() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Column() {
       // ── 品牌头 ──
       Row() {
+        Text('搜索')
+          .fontSize(13)
+          .fontColor($r('app.color.color_surface'))
+          .backgroundColor('rgba(255,255,255,0.22)')
+          .borderRadius(14)
+          .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+          .onClick(() => { this.showSearchPage = true })
+        Blank()
         Text('鸭鱼算')
           .fontSize(22)
           .fontWeight(FontWeight.Bolder)
           .fontColor($r('app.color.color_text_primary'))
           .fontFamily('cursive') // Add a slight playful font vibe if available
+        Blank()
+        Column().width(52)
       }
       .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .padding({ top: 24, bottom: 16 })
+      .alignItems(VerticalAlign.Center)
+      .padding({ left: 16, right: 16, top: this.sbHeight, bottom: 16 })
       .backgroundColor($r('app.color.color_primary'))
       .borderRadius({ bottomLeft: 24, bottomRight: 24 })
       .shadow({ radius: 12, color: 'rgba(0,0,0,0.05)', offsetY: 4 })
       .zIndex(10)
 
+
       // ── 月份导航栏 ──
-      Row() {
-        Row() {
-          Image($rawfile('icon_chevron_left.svg'))
-            .width(20).height(20)
-            .fillColor($r('app.color.color_primary'))
+      MonthSelector({
+        currentMonth: this.filter.month || DateUtil.currentMonth(),
+        onSwitch: (dir) => { this.doMonthSwitch(dir) },
+        onMonthSelect: (m) => {
+          this.filter = { month: m, type: this.filter.type, category: this.filter.category }
+          this.loadData()
         }
-        .width(36).height(36).borderRadius(18)
-        .justifyContent(FlexAlign.Center)
-        .backgroundColor('rgba(44,122,123,0.08)')
-        .onClick(() => { this.doMonthSwitch(1) })
-
-        Row() {
-          Text(DateUtil.formatMonthDisplay(this.filter.month || DateUtil.currentMonth()))
-            .fontSize(17).fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.color_text_primary'))
-          Image($rawfile('icon_other.svg'))
-            .width(12).height(12)
-            .fillColor($r('app.color.color_text_secondary'))
-            .margin({ left: 4 })
-        }
-        .margin({ left: 20, right: 20 })
-        .onClick(() => {
-          const parts = (this.filter.month || DateUtil.currentMonth()).split('-')
-          const now = new Date()
-          this.getUIContext().showDatePickerDialog({
-            start: new Date('2020-01-01'),
-            end: now,
-            selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
-            lunar: false,
-            onDateAccept: (value: Date) => {
-              const y = value.getFullYear()
-              const m = (value.getMonth() + 1).toString().padStart(2, '0')
-              this.filter = { month: `${y}-${m}`, type: this.filter.type, category: this.filter.category }
-              this.loadData()
-            }
-          })
-        })
-
-        Row() {
-          Image($rawfile('icon_chevron_right.svg'))
-            .width(20).height(20)
-            .fillColor(DateUtil.isCurrentMonth(this.filter.month || DateUtil.currentMonth())
-              ? $r('app.color.color_divider') : $r('app.color.color_primary'))
-        }
-        .width(36).height(36).borderRadius(18)
-        .justifyContent(FlexAlign.Center)
-        .backgroundColor(DateUtil.isCurrentMonth(this.filter.month || DateUtil.currentMonth())
-          ? 'rgba(0,0,0,0.03)' : 'rgba(44,122,123,0.08)')
-        .onClick(() => {
-          if (!DateUtil.isCurrentMonth(this.filter.month || DateUtil.currentMonth())) {
-            this.doMonthSwitch(-1)
-          }
-        })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .padding({ top: 10, bottom: 6 })
+      })
 
       // ── 内容区（跟手滑动切月） ──
       Column() {
@@ -228,7 +221,12 @@ export struct BillListPage {
                       .fontColor($r('app.color.color_text_secondary'))
                       .fontWeight(FontWeight.Medium)
                   }
-                  .padding({ left: 10, right: 10, top: 3, bottom: 3 })
+                  .padding({
+                    left: 10,
+                    right: 10,
+                    top: 3,
+                    bottom: 3
+                  })
                   .backgroundColor($r('app.color.color_surface'))
                   .borderRadius(10)
 
@@ -242,7 +240,12 @@ export struct BillListPage {
                     .fontWeight(FontWeight.Medium)
                 }
                 .width('100%')
-                .padding({ left: 20, right: 20, top: 14, bottom: 6 })
+                .padding({
+                  left: 20,
+                  right: 20,
+                  top: 14,
+                  bottom: 6
+                })
               }
               .selectable(false)
 
@@ -271,23 +274,48 @@ export struct BillListPage {
       .gesture(
         PanGesture({ direction: PanDirection.Horizontal, distance: 5 })
           .onActionUpdate((event: GestureEvent) => {
-            if (event) { this.slideOffsetX = event.offsetX }
+            if (event) {
+              this.slideOffsetX = event.offsetX
+            }
           })
           .onActionEnd((event: GestureEvent) => {
-            if (!event) { this.slideOffsetX = 0; return }
-            if (event.offsetX > 80) { this.doMonthSwitch(1) }
-            else if (event.offsetX < -80) { this.doMonthSwitch(-1) }
-            else {
+            if (!event) {
+              this.slideOffsetX = 0;
+              return
+            }
+            if (event.offsetX > 80) {
+              this.doMonthSwitch(1)
+            } else if (event.offsetX < -80) {
+              this.doMonthSwitch(-1)
+            } else {
               this.getUIContext().animateTo(
                 { duration: 150, curve: Curve.EaseOut },
-                () => { this.slideOffsetX = 0 }
+                () => {
+                  this.slideOffsetX = 0
+                }
               )
             }
           })
       )
+      }
+
+      .width('100%')
+      .height('100%')
+      .backgroundColor($r('app.color.color_bg'))
+
+      if (this.showSearchPage) {
+        BillSearchPage({
+          onClose: () => { this.showSearchPage = false }
+        })
+        .transition(
+          TransitionEffect.asymmetric(
+            TransitionEffect.OPACITY.combine(TransitionEffect.translate({ x: 200 }))
+              .animation({ duration: 220, curve: Curve.EaseOut }),
+            TransitionEffect.OPACITY.combine(TransitionEffect.translate({ x: 200 }))
+              .animation({ duration: 180, curve: Curve.EaseIn })
+          )
+        )
+      }
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor($r('app.color.color_bg'))
   }
 }

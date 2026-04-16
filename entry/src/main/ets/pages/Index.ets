@@ -30,7 +30,6 @@ struct Index {
   @StorageProp('navBarHeight') nbHeight: number = 0
   @StorageProp('statusBarHeight') sbHeight: number = 0
   @StorageLink('showCategoryEditor') showCategoryEditor: boolean = false
-
   private tabController: TabsController = new TabsController()
   private tabArray: BottomTabModel[] = [
     new BottomTabModel('账单', $rawfile('icon_tab_bills.svg'), $rawfile('icon_tab_bills.svg'), false),
@@ -48,7 +47,9 @@ struct Index {
 
   private updateStatusBar(index: number): void {
     const win = AppStorage.get<window.Window>('mainWindow')
-    if (!win) return
+    if (!win) {
+      return
+    }
     win.setWindowSystemBarProperties({
       statusBarContentColor: index === 2 ? '#FFFFFF' : '#1A202C' // 沉浸式与文字颜色匹配 (index 2 为记账)
     }).catch((e: Error) => {
@@ -92,13 +93,15 @@ struct Index {
         Text(item.title)
           .fontSize(10)
           .margin({ top: -10 })
-          .fontColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') : $r('app.color.color_tab_inactive'))
+          .fontColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') :
+            $r('app.color.color_tab_inactive'))
           .animation({ duration: 300, curve: Curve.Ease })
       } else { // 常规侧边按钮
         Image(item.defaultImage)
           .width(24)
           .height(24)
-          .fillColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') : $r('app.color.color_tab_inactive'))
+          .fillColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') :
+            $r('app.color.color_tab_inactive'))
           .offset({ y: this.currentTabIndex === index ? -4 : 0 })
           .scale(this.currentTabIndex === index ? { x: 1.1, y: 1.1 } : { x: 1, y: 1 })
           .animation({ duration: 300, curve: Curve.Ease })
@@ -106,7 +109,8 @@ struct Index {
         Text(item.title)
           .fontSize(10)
           .margin({ top: 4 })
-          .fontColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') : $r('app.color.color_tab_inactive'))
+          .fontColor(this.currentTabIndex === index ? $r('app.color.color_text_primary') :
+            $r('app.color.color_tab_inactive'))
           .animation({ duration: 300, curve: Curve.Ease })
       }
     }
@@ -122,15 +126,28 @@ struct Index {
       Tabs({ barPosition: BarPosition.End, controller: this.tabController, index: this.currentTabIndex }) {
         ForEach(this.tabArray, (item: BottomTabModel, index: number) => {
           if (index === 0) {
-            TabContent() { BillListPage().padding({ top: this.sbHeight }) }.backgroundColor($r('app.color.start_window_background'))
+            TabContent() {
+              BillListPage()
+            }
+            .backgroundColor($r('app.color.start_window_background'))
           } else if (index === 1) {
-            TabContent() { CalendarPage().padding({ top: this.sbHeight }) }.backgroundColor($r('app.color.start_window_background'))
+            TabContent() {
+              CalendarPage()
+                .padding({ top: this.sbHeight })
+            }
+            .backgroundColor($r('app.color.start_window_background'))
           } else if (index === 2) {
-            TabContent() { AddBillPage() }.backgroundColor($r('app.color.start_window_background'))
+            TabContent() {
+              AddBillPage()
+            }.backgroundColor($r('app.color.start_window_background'))
           } else if (index === 3) {
-            TabContent() { StatisticsPage().padding({ top: this.sbHeight }) }.backgroundColor($r('app.color.start_window_background'))
+            TabContent() {
+              StatisticsPage().padding({ top: this.sbHeight })
+            }.backgroundColor($r('app.color.start_window_background'))
           } else if (index === 4) {
-            TabContent() { SettingsPage().padding({ top: this.sbHeight }) }.backgroundColor($r('app.color.start_window_background'))
+            TabContent() {
+              SettingsPage().padding({ top: this.sbHeight })
+            }.backgroundColor($r('app.color.start_window_background'))
           }
         }, (item: BottomTabModel, index: number) => JSON.stringify(item) + index)
       }
@@ -161,14 +178,14 @@ struct Index {
             })
           }
         })
-        .transition(
-          TransitionEffect.asymmetric(
-            TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 800 }))
-              .animation({ duration: 300, curve: Curve.EaseOut }),
-            TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 800 }))
-              .animation({ duration: 250, curve: Curve.EaseIn })
+          .transition(
+            TransitionEffect.asymmetric(
+              TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 800 }))
+                .animation({ duration: 300, curve: Curve.EaseOut }),
+              TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 800 }))
+                .animation({ duration: 250, curve: Curve.EaseIn })
+            )
           )
-        )
       }
     }
     .width('100%')
