@@ -1,6 +1,7 @@
 import { Bill } from '../model/Bill'
 import { getCategoryColor, getCategoryInfo } from '../model/Category'
 import { AmountUtil } from '../utils/AmountUtil'
+import { DateUtil } from '../utils/DateUtil'
 
 @Component
 export struct BillItem {
@@ -47,12 +48,19 @@ export struct BillItem {
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.color_text_primary'))
             .margin({ bottom: 4 })
-          if (this.bill.remark) {
-            Text(this.bill.remark)
-              .fontSize(12)
-              .fontColor($r('app.color.color_text_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          
+          Row() {
+            if (this.bill.remark) {
+              Text(this.bill.remark)
+                .fontSize(12)
+                .fontColor($r('app.color.color_text_secondary'))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .margin({ right: 8 })
+            }
+            Text(DateUtil.getRelativeTime(this.bill.createdAt))
+              .fontSize(11)
+              .fontColor($r('app.color.color_tab_inactive'))
           }
         }
         .layoutWeight(1)

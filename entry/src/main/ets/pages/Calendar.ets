@@ -1,6 +1,7 @@
 import { DateUtil } from '../utils/DateUtil'
 import { BillDao } from '../database/BillDao'
 import { CalendarView } from '../components/CalendarView'
+import { MonthSelector } from '../components/MonthSelector'
 
 @Component
 export struct CalendarPage {
@@ -51,46 +52,11 @@ export struct CalendarPage {
   build() {
     Column() {
       // 月份导航
-      Row() {
-        Image($rawfile('icon_chevron_left.svg'))
-          .width(24).height(24)
-          .fillColor($r('app.color.color_primary'))
-          .padding(4)
-          .onClick(() => { this.doMonthSwitch(1) })
-
-        Text(DateUtil.formatMonthDisplay(this.currentMonth))
-          .fontSize(16).fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_text_primary'))
-          .margin({ left: 16, right: 16 })
-          .onClick(() => {
-            const parts = this.currentMonth.split('-')
-            const now = new Date()
-            this.getUIContext().showDatePickerDialog({
-              start: new Date('2020-01-01'),
-              end: now,
-              selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
-              lunar: false,
-              onDateAccept: (value: Date) => {
-                const y = value.getFullYear()
-                const m = (value.getMonth() + 1).toString().padStart(2, '0')
-                this.currentMonth = `${y}-${m}`
-              }
-            })
-          })
-
-        Image($rawfile('icon_chevron_right.svg'))
-          .width(24).height(24)
-          .fillColor(DateUtil.isCurrentMonth(this.currentMonth) ? $r('app.color.color_divider') : $r('app.color.color_primary'))
-          .padding(4)
-          .onClick(() => {
-            if (!DateUtil.isCurrentMonth(this.currentMonth)) {
-              this.doMonthSwitch(-1)
-            }
-          })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .padding({ top: 12, bottom: 8 })
+      MonthSelector({
+        currentMonth: this.currentMonth,
+        onSwitch: (dir) => { this.doMonthSwitch(dir) },
+        onMonthSelect: (m) => { this.currentMonth = m }
+      })
 
       // 日历视图
       Column() {

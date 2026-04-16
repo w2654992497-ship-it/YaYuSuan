@@ -2,6 +2,7 @@ import { relationalStore } from '@kit.ArkData'
 import { Bill } from '../model/Bill'
 import { LogUtils } from '../utils/LogUtils'
 import { FilterOptions } from '../model/FilterOptions'
+import { SearchFilterOptions } from '../model/SearchFilterOptions'
 import { CategoryStat, MonthStat, DaySummary } from '../model/StatResult'
 import { DBHelper } from './DBHelper'
 import { getCategoryColor } from '../model/Category'
@@ -92,6 +93,49 @@ export class BillDao {
       return bills
     } catch (err) {
       LogUtils.error('BillDao', 'queryByFilter failed: %{public}s', JSON.stringify(err))
+      return []
+    }
+  }
+
+  async queryBySearchFilter(filter: SearchFilterOptions): Promise<Bill[]> {
+    try {
+      const store = this.getStore()
+      const predicates = new relationalStore.RdbPredicates('bills')
+
+      if (filter.type !== 'all') {
+        predicates.equalTo('type', filter.type)
+      }
+      if (filter.category && filter.category.length > 0) {
+        predicates.equalTo('category', filter.category)
+      }
+      if (filter.startDate && filter.startDate.length > 0) {
+        predicates.greaterThanOrEqualTo('date', filter.startDate)
+      }
+      if (filter.endDate && filter.endDate.length > 0) {
+        predicates.lessThanOrEqualTo('date', filter.endDate)
+      }
+
+      predicates.orderByDesc('date')
+      predicates.orderByDesc('createdAt')
+
+      const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'remark', 'date', 'createdAt'])
+      const bills: Bill[] = []
+
+      while (resultSet.goToNextRow()) {
+        bills.push({
+          id: resultSet.getLong(resultSet.getColumnIndex('id')),
+          amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
+          type: resultSet.getString(resultSet.getColumnIndex('type')) as 'income' | 'expense',
+          category: resultSet.getString(resultSet.getColumnIndex('category')),
+          remark: resultSet.getString(resultSet.getColumnIndex('remark')),
+          date: resultSet.getString(resultSet.getColumnIndex('date')),
+          createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+        })
+      }
+      resultSet.close()
+      return bills
+    } catch (err) {
+      LogUtils.error('BillDao', 'queryBySearchFilter failed: %{public}s', JSON.stringify(err))
       return []
     }
   }
