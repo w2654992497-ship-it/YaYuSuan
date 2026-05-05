@@ -1,8 +1,41 @@
 {
   "color": [
-    {
-      "name": "start_window_background",
-      "value": "#000000"
-    }
+    { "name": "start_window_background", "value": "#F7FBFA" },
+    { "name": "color_bg", "value": "#F7FBFA" },
+    { "name": "color_bg_mid", "value": "#FFFFFF" },
+    { "name": "color_bg_bottom", "value": "#DDF5F2" },
+    { "name": "color_surface", "value": "#FFFFFF" },
+    { "name": "color_card", "value": "#FFFFFF" },
+    { "name": "color_card_overlay", "value": "#F2FFFFFF" },
+    { "name": "color_text_primary", "value": "#1F3440" },
+    { "name": "color_text_deep", "value": "#102B33" },
+    { "name": "color_text_secondary", "value": "#7A8B99" },
+    { "name": "color_text_muted", "value": "#9AAAB5" },
+    { "name": "color_icon_muted", "value": "#8FA1A8" },
+    { "name": "color_tab_inactive", "value": "#9AAAB5" },
+    { "name": "color_divider", "value": "#E7F0EF" },
+    { "name": "color_track", "value": "#DDF5F2" },
+    { "name": "color_soft_blue", "value": "#DDF5F2" },
+    { "name": "color_selected_bg", "value": "#E6F7F5" },
+    { "name": "color_primary", "value": "#21A7A8" },
+    { "name": "color_primary_light", "value": "#5CC9C8" },
+    { "name": "color_primary_dark", "value": "#137B7D" },
+    { "name": "color_accent", "value": "#FFB84D" },
+    { "name": "color_accent_deep", "value": "#F59E0B" },
+    { "name": "color_income", "value": "#31B46B" },
+    { "name": "color_expense", "value": "#EF5B73" },
+    { "name": "color_warning", "value": "#F59E0B" },
+    { "name": "color_duck", "value": "#FFB84D" },
+    { "name": "color_purple", "value": "#8B5CF6" },
+    { "name": "color_slate", "value": "#475569" },
+    { "name": "color_pie_water_light", "value": "#DDF5F2" },
+    { "name": "color_pie_water_dark", "value": "#21A7A8" },
+    { "name": "color_shadow_blue_08", "value": "#1421A7A8" },
+    { "name": "color_shadow_blue_09", "value": "#1721A7A8" },
+    { "name": "color_shadow_blue_10", "value": "#1A21A7A8" },
+    { "name": "color_shadow_orange_22", "value": "#38FFB84D" },
+    { "name": "color_dialog_mask", "value": "#60000000" },
+    { "name": "color_white", "value": "#FFFFFF" },
+    { "name": "color_black", "value": "#000000" }
   ]
 }

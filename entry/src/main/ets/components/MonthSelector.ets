@@ -5,62 +5,90 @@ export struct MonthSelector {
   @Prop currentMonth: string
   onSwitch: (direction: number) => void = () => {}
   onMonthSelect: (month: string) => void = () => {}
+  onToday: () => void = () => {}
+
+  private pickMonth(): void {
+    const parts = this.currentMonth.split('-')
+    const now = new Date()
+    this.getUIContext().showDatePickerDialog({
+      start: new Date('2020-01-01'),
+      end: now,
+      selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
+      lunar: false,
+      onDateAccept: (value: Date) => {
+        const y = value.getFullYear()
+        const m = (value.getMonth() + 1).toString().padStart(2, '0')
+        this.onMonthSelect(`${y}-${m}`)
+      }
+    })
+  }
 
   build() {
     Row() {
-      // 左侧按钮（上个月）
       Row() {
         Image($rawfile('icon_chevron_left.svg'))
-          .width(20).height(20)
-          .fillColor($r('app.color.color_text_primary'))
+          .width(18)
+          .height(18)
+          .fillColor($r('app.color.color_text_deep'))
       }
-      .width(44)
-      .height(44)
+      .width(38)
+      .height(40)
       .justifyContent(FlexAlign.Center)
       .onClick(() => {
         this.onSwitch(1)
       })
 
-      // 分割线
-      Divider().vertical(true).height(24).color('rgba(0,0,0,0.1)')
+      Divider()
+        .vertical(true)
+        .height(24)
+        .color($r('app.color.color_divider'))
 
-      // 中间月份切换
-      Row() {
+      Row({ space: 6 }) {
         Text(DateUtil.formatMonthDisplay(this.currentMonth))
-          .fontSize(16).fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_text_primary'))
+          .fontSize(17)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_deep'))
+        Image($rawfile('icon_chevron_down.svg'))
+          .width(13)
+          .height(13)
+          .fillColor($r('app.color.color_icon_muted'))
       }
       .layoutWeight(1)
-      .height(44)
+      .height(40)
       .justifyContent(FlexAlign.Center)
       .onClick(() => {
-        const parts = this.currentMonth.split('-')
-        const now = new Date()
-        this.getUIContext().showDatePickerDialog({
-          start: new Date('2020-01-01'),
-          end: now,
-          selected: new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1),
-          lunar: false,
-          onDateAccept: (value: Date) => {
-            const y = value.getFullYear()
-            const m = (value.getMonth() + 1).toString().padStart(2, '0')
-            this.onMonthSelect(`${y}-${m}`)
-          }
-        })
+        this.pickMonth()
       })
 
-      // 分割线
-      Divider().vertical(true).height(24).color('rgba(0,0,0,0.1)')
+      Button('今日')
+        .fontSize(13)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.color_primary'))
+        .height(32)
+        .padding({ left: 14, right: 14 })
+        .type(ButtonType.Normal)
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(16)
+        .border({ width: 1, color: $r('app.color.color_divider') })
+        .onClick(() => {
+          this.onToday()
+        })
 
-      // 右侧按钮（下个月）
+      Divider()
+        .vertical(true)
+        .height(24)
+        .color($r('app.color.color_divider'))
+        .margin({ left: 8 })
+
       Row() {
         Image($rawfile('icon_chevron_right.svg'))
-          .width(20).height(20)
-          .fillColor(DateUtil.isCurrentMonth(this.currentMonth)
-            ? $r('app.color.color_divider') : $r('app.color.color_text_primary'))
+          .width(18)
+          .height(18)
+          .fillColor(DateUtil.isCurrentMonth(this.currentMonth) ? $r('app.color.color_divider') :
+            $r('app.color.color_text_deep'))
       }
-      .width(44)
-      .height(44)
+      .width(38)
+      .height(40)
       .justifyContent(FlexAlign.Center)
       .onClick(() => {
         if (!DateUtil.isCurrentMonth(this.currentMonth)) {
@@ -68,12 +96,13 @@ export struct MonthSelector {
         }
       })
     }
-    .width('90%')
-    .height(44)
-    .backgroundColor($r('app.color.color_surface'))
-    .borderRadius(22)
-    .border({ width: 2, color: '#1A202C' }) // Neobrutalism 风格粗边框
-    .shadow({ radius: 0, color: '#1A202C', offsetX: 4, offsetY: 4 }) // Neo-brutalism 偏移阴影
-    .margin({ top: 12, bottom: 12 })
+    .width('calc(100% - 32vp)')
+    .height(46)
+    .padding({ left: 6, right: 6 })
+    .backgroundColor($r('app.color.color_card_overlay'))
+    .borderRadius(23)
+    .border({ width: 1, color: $r('app.color.color_divider') })
+    .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
+    .margin({ left: 16, right: 16, top: 6, bottom: 8 })
   }
 }

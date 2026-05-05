@@ -20,18 +20,25 @@ export struct CalendarGrid {
 
   private readonly weekLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
 
+  private summaryAt(dateStr: string): DaySummary | null {
+    for (let i = 0; i < this.daySummaries.length; i++) {
+      if (this.daySummaries[i].date === dateStr) {
+        return this.daySummaries[i]
+      }
+    }
+    return null
+  }
+
   private buildCells(): CalendarCell[] {
     const parts = this.currentMonth.split('-')
     const year = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10)
     const firstDay = new Date(year, month - 1, 1)
     let startWeekday = firstDay.getDay() - 1
-    if (startWeekday < 0) startWeekday = 6
+    if (startWeekday < 0) {
+      startWeekday = 6
+    }
     const daysInMonth = new Date(year, month, 0).getDate()
-
-    const summaryMap: Map<string, DaySummary> = new Map()
-    for (const s of this.daySummaries) { summaryMap.set(s.date, s) }
-
     const todayStr = DateUtil.today()
     const cells: CalendarCell[] = []
 
@@ -40,10 +47,11 @@ export struct CalendarGrid {
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${this.currentMonth}-${d.toString().padStart(2, '0')}`
-      const summary = summaryMap.get(dateStr)
+      const summary = this.summaryAt(dateStr)
       const colIndex = (startWeekday + d - 1) % 7
       cells.push({
-        day: d, dateStr: dateStr,
+        day: d,
+        dateStr: dateStr,
         isToday: dateStr === todayStr,
         isWeekend: colIndex >= 5,
         income: summary ? summary.income : 0,
@@ -54,85 +62,76 @@ export struct CalendarGrid {
   }
 
   private cellKey(cell: CalendarCell, index: number): string {
-    return `${this.currentMonth}_${index}_${cell.income}_${cell.expense}`
+    return `${this.currentMonth}_${this.selectedDate}_${index}_${cell.income}_${cell.expense}`
   }
 
   build() {
     Column() {
-      // 星期头
       Row() {
-        ForEach(this.weekLabels, (label: string, idx: number) => {
+        ForEach(this.weekLabels, (label: string, index: number) => {
           Text(label)
-            .fontSize(12)
-            .fontColor(idx >= 5 ? '#1976D2' : '#757575')
+            .fontSize(13)
+            .fontColor(index >= 5 ? $r('app.color.color_primary') : $r('app.color.color_text_secondary'))
             .fontWeight(FontWeight.Medium)
             .textAlign(TextAlign.Center)
             .layoutWeight(1)
-        })
+        }, (label: string) => label)
       }
       .width('100%')
       .height(24)
       .padding({ left: 4, right: 4 })
 
-      // 日历格子 — Flex wrap，每格固定 14.28% × 52vp
       Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start, alignContent: FlexAlign.Start }) {
         ForEach(this.buildCells(), (cell: CalendarCell, index: number) => {
-          // 每个格子
           Column() {
             if (cell.day > 0) {
-              // 日期圆圈
               Column() {
                 Text(`${cell.day}`)
-                  .fontSize(14)
-                  .fontColor(
-                    cell.dateStr === this.selectedDate ? '#FFFFFF' :
-                      cell.isToday ? '#1976D2' :
-                        cell.isWeekend ? '#1976D2' : '#212121'
-                  )
-                  .fontWeight(cell.isToday || cell.dateStr === this.selectedDate ? FontWeight.Bold : FontWeight.Normal)
+                  .fontSize(15)
+                  .fontWeight(cell.dateStr === this.selectedDate ? FontWeight.Bold : FontWeight.Normal)
+                  .fontColor(cell.dateStr === this.selectedDate ? $r('app.color.color_white') :
+                    cell.isWeekend ? $r('app.color.color_primary') : $r('app.color.color_text_primary'))
               }
               .width(28)
               .height(28)
               .borderRadius(14)
               .justifyContent(FlexAlign.Center)
               .alignItems(HorizontalAlign.Center)
-              .backgroundColor(cell.dateStr === this.selectedDate ? '#1976D2' : Color.Transparent)
-              .border(cell.isToday && cell.dateStr !== this.selectedDate
-                ? { width: 1, color: '#1976D2', style: BorderStyle.Solid }
-                : { width: 0 })
+              .backgroundColor(cell.dateStr === this.selectedDate ? $r('app.color.color_primary') : Color.Transparent)
+              .border(cell.isToday && cell.dateStr !== this.selectedDate ?
+                { width: 1, color: $r('app.color.color_primary'), style: BorderStyle.Solid } : { width: 0 })
 
-              // 收支金额
-              if (cell.expense > 0 || cell.income > 0) {
-                if (cell.expense > 0) {
-                  Text(AmountUtil.shortYuan(cell.expense))
-                    .fontSize(8)
-                    .fontColor('#F44336')
-                    .maxLines(1)
-                    .margin({ top: 1 })
-                }
-                if (cell.income > 0) {
-                  Text(AmountUtil.shortYuan(cell.income))
-                    .fontSize(8)
-                    .fontColor('#4CAF50')
-                    .maxLines(1)
-                }
+              if (cell.expense > 0) {
+                Text(AmountUtil.shortYuan(cell.expense))
+                  .fontSize(10)
+                  .fontColor($r('app.color.color_expense'))
+                  .maxLines(1)
+                  .margin({ top: 2 })
+              } else if (cell.income > 0) {
+                Text(AmountUtil.shortYuan(cell.income))
+                  .fontSize(10)
+                  .fontColor($r('app.color.color_income'))
+                  .maxLines(1)
+                  .margin({ top: 2 })
               } else {
-                Blank().height(10)
+                Blank()
+                  .height(10)
               }
             }
           }
           .width('14.28%')
-          .height(52)
+          .height(46)
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
-          .borderRadius(8)
           .onClick(() => {
-            if (cell.day > 0) { this.onSelectDate(cell.dateStr) }
+            if (cell.day > 0) {
+              this.onSelectDate(cell.dateStr)
+            }
           })
         }, (cell: CalendarCell, index: number) => this.cellKey(cell, index))
       }
       .width('100%')
-      .padding({ left: 2, right: 2 })
+      .padding({ left: 2, right: 2, bottom: 4 })
     }
     .width('100%')
   }
