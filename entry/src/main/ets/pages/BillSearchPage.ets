@@ -5,6 +5,7 @@ import { CategoryDao } from '../database/CategoryDao'
 import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
 import { SearchResultItem } from '../components/SearchResultItem'
+import { WaterPageBg } from '../components/WaterPageBg'
 
 interface SearchResultData {
   bill: Bill
@@ -264,7 +265,10 @@ export struct BillSearchPage {
   }
 
   build() {
-    Column() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      WaterPageBg()
+
+      Column() {
       Row() {
         Row() {
           Image($rawfile('icon_chevron_left.svg'))
@@ -384,6 +388,14 @@ export struct BillSearchPage {
             .borderRadius(12)
             .border({ width: 1, color: $r('app.color.color_divider') })
             .scrollBar(BarState.Auto)
+            .transition(
+              TransitionEffect.asymmetric(
+                TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: -8 }))
+                  .animation({ duration: 180, curve: Curve.EaseOut }),
+                TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: -8 }))
+                  .animation({ duration: 140, curve: Curve.EaseIn })
+              )
+            )
           }
         }
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
@@ -428,7 +440,7 @@ export struct BillSearchPage {
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 4, bottom: 10 })
-      .backgroundColor($r('app.color.color_bg'))
+      .backgroundColor('rgba(238,249,250,0.70)')
 
       Row() {
         Text(`结果 ${this.resultCount} 条`)
@@ -459,9 +471,9 @@ export struct BillSearchPage {
           .textAlign(TextAlign.Center)
           .fontSize(11)
           .fontColor(this.selectedType === 'all' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
-          .backgroundColor(this.selectedType === 'all' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
+          .backgroundColor(this.selectedType === 'all' ? $r('app.color.color_accent') : $r('app.color.color_surface'))
           .borderRadius(13)
-          .border({ width: 1, color: this.selectedType === 'all' ? $r('app.color.color_primary') : $r('app.color.color_divider') })
+          .border({ width: 1, color: this.selectedType === 'all' ? $r('app.color.color_accent') : $r('app.color.color_divider') })
           .onClick(() => { this.setTypeFilter('all') })
 
         Text('收入')
@@ -481,9 +493,9 @@ export struct BillSearchPage {
           .textAlign(TextAlign.Center)
           .fontSize(11)
           .fontColor(this.selectedType === 'expense' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
-          .backgroundColor(this.selectedType === 'expense' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
+          .backgroundColor(this.selectedType === 'expense' ? $r('app.color.color_accent') : $r('app.color.color_surface'))
           .borderRadius(13)
-          .border({ width: 1, color: this.selectedType === 'expense' ? $r('app.color.color_primary') : $r('app.color.color_divider') })
+          .border({ width: 1, color: this.selectedType === 'expense' ? $r('app.color.color_accent') : $r('app.color.color_divider') })
           .onClick(() => { this.setTypeFilter('expense') })
       }
       .width('100%')
@@ -556,8 +568,11 @@ export struct BillSearchPage {
         .scrollBar(BarState.Off)
       }
     }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(Color.Transparent)
+    }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.color_bg'))
   }
 }

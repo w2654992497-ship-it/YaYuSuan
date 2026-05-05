@@ -1,0 +1,568 @@
+{
+  "permissions": [
+    {
+      "objectTypeName": "UserInfo",
+      "permissions": [
+        {
+          "role": "World",
+          "rights": [
+            "Read"
+          ]
+        },
+        {
+          "role": "Authenticated",
+          "rights": [
+            "Read",
+            "Upsert"
+          ]
+        },
+        {
+          "role": "Creator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        },
+        {
+          "role": "Administrator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        }
+      ]
+    },
+    {
+      "objectTypeName": "CloudBill",
+      "permissions": [
+        {
+          "role": "World",
+          "rights": [
+            "Read"
+          ]
+        },
+        {
+          "role": "Authenticated",
+          "rights": [
+            "Read",
+            "Upsert"
+          ]
+        },
+        {
+          "role": "Creator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        },
+        {
+          "role": "Administrator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        }
+      ]
+    },
+    {
+      "objectTypeName": "CloudCategory",
+      "permissions": [
+        {
+          "role": "World",
+          "rights": [
+            "Read"
+          ]
+        },
+        {
+          "role": "Authenticated",
+          "rights": [
+            "Read",
+            "Upsert"
+          ]
+        },
+        {
+          "role": "Creator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        },
+        {
+          "role": "Administrator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        }
+      ]
+    },
+    {
+      "objectTypeName": "CloudPeriodRule",
+      "permissions": [
+        {
+          "role": "World",
+          "rights": [
+            "Read"
+          ]
+        },
+        {
+          "role": "Authenticated",
+          "rights": [
+            "Read",
+            "Upsert"
+          ]
+        },
+        {
+          "role": "Creator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        },
+        {
+          "role": "Administrator",
+          "rights": [
+            "Read",
+            "Upsert",
+            "Delete"
+          ]
+        }
+      ]
+    }
+  ],
+  "objectTypes": [
+    {
+      "objectTypeName": "UserInfo",
+      "indexes": [
+        {
+          "indexName": "idxUserUsername",
+          "indexList": [
+            "username"
+          ]
+        },
+        {
+          "indexName": "idxUserUpdatedAt",
+          "indexList": [
+            "updatedAt"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "fieldName": "cloudId",
+          "notNull": true,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": true,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "localId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "username",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "displayName",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "createdAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "lastLoginAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "updatedAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        }
+      ]
+    },
+    {
+      "objectTypeName": "CloudBill",
+      "indexes": [
+        {
+          "indexName": "idxBillUserDate",
+          "indexList": [
+            "userId",
+            "date"
+          ]
+        },
+        {
+          "indexName": "idxBillUserType",
+          "indexList": [
+            "userId",
+            "type"
+          ]
+        },
+        {
+          "indexName": "idxBillUserCategory",
+          "indexList": [
+            "userId",
+            "category"
+          ]
+        },
+        {
+          "indexName": "idxBillUpdatedAt",
+          "indexList": [
+            "userId",
+            "updatedAt"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "fieldName": "cloudId",
+          "notNull": true,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": true,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "userId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "localId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "amount",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "type",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "category",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "remark",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Text"
+        },
+        {
+          "fieldName": "date",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "createdAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "updatedAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "deleted",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        }
+      ]
+    },
+    {
+      "objectTypeName": "CloudCategory",
+      "indexes": [
+        {
+          "indexName": "idxCategoryUserType",
+          "indexList": [
+            "userId",
+            "type"
+          ]
+        },
+        {
+          "indexName": "idxCategoryUserSort",
+          "indexList": [
+            "userId",
+            "type",
+            "sortOrder"
+          ]
+        },
+        {
+          "indexName": "idxCategoryUpdatedAt",
+          "indexList": [
+            "userId",
+            "updatedAt"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "fieldName": "cloudId",
+          "notNull": true,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": true,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "userId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "localId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "name",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "icon",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "color",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "type",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "sortOrder",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        },
+        {
+          "fieldName": "isDefault",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        },
+        {
+          "fieldName": "updatedAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "deleted",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        }
+      ]
+    },
+    {
+      "objectTypeName": "CloudPeriodRule",
+      "indexes": [
+        {
+          "indexName": "idxPeriodUserType",
+          "indexList": [
+            "userId",
+            "type"
+          ]
+        },
+        {
+          "indexName": "idxPeriodUserNextDate",
+          "indexList": [
+            "userId",
+            "nextDate"
+          ]
+        },
+        {
+          "indexName": "idxPeriodUpdatedAt",
+          "indexList": [
+            "userId",
+            "updatedAt"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "fieldName": "cloudId",
+          "notNull": true,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": true,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "userId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "localId",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "title",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "amount",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "type",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "category",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "remark",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Text"
+        },
+        {
+          "fieldName": "cycle",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "day",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        },
+        {
+          "fieldName": "month",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        },
+        {
+          "fieldName": "nextDate",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "String"
+        },
+        {
+          "fieldName": "enabled",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        },
+        {
+          "fieldName": "createdAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "updatedAt",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Long"
+        },
+        {
+          "fieldName": "deleted",
+          "notNull": false,
+          "isNeedEncrypt": false,
+          "belongPrimaryKey": false,
+          "fieldType": "Integer"
+        }
+      ]
+    }
+  ]
+}

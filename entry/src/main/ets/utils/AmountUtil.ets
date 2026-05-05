@@ -1,8 +1,12 @@
 export class AmountUtil {
-  static fen2Display(fen: number): string {
+  static rawFen2Display(fen: number): string {
     const safeFen = isNaN(fen) ? 0 : fen
     const yuan = safeFen / 100
     return yuan.toFixed(2)
+  }
+
+  static fen2Display(fen: number): string {
+    return AmountUtil.rawFen2Display(fen)
   }
 
   static yuan2Fen(yuan: string): number {
@@ -22,7 +26,6 @@ export class AmountUtil {
     }
   }
 
-  // 日历格子中的简短金额（无¥号，整数省略小数）
   static shortYuan(fen: number): string {
     const safeFen = isNaN(fen) ? 0 : fen
     const yuan = safeFen / 100

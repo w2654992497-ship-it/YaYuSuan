@@ -1,8 +1,9 @@
-import { CategoryRecord } from '../model/Category'
+import { CategoryRecord, getUnifiedCategoryColor } from '../model/Category'
 import { CategoryDao } from '../database/CategoryDao'
 import { BillDao } from '../database/BillDao'
 import { CategoryEditDialog } from '../components/CategoryEditDialog'
 import { LogUtils } from '../utils/LogUtils'
+import { WaterPageBg } from '../components/WaterPageBg'
 
 const ITEM_H = 64
 
@@ -22,6 +23,7 @@ export struct CategoryManagePage {
   @State dialogColor: string = '#78909C'
   @State editingId: number = 0
   @State editingOldName: string = ''
+  @StorageProp('statusBarHeight') sbHeight: number = 0
 
   private editDialogController: CustomDialogController = new CustomDialogController({
     builder: CategoryEditDialog({
@@ -178,7 +180,9 @@ export struct CategoryManagePage {
       .fontSize(14)
       .fontColor(this.activeType === type ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
       .fontWeight(this.activeType === type ? FontWeight.Medium : FontWeight.Normal)
-      .backgroundColor(this.activeType === type ? $r('app.color.color_primary') : $r('app.color.color_surface'))
+      .backgroundColor(this.activeType === type
+        ? (type === 'expense' ? $r('app.color.color_accent') : $r('app.color.color_primary'))
+        : $r('app.color.color_surface'))
       .borderRadius(16).padding({ left: 20, right: 20, top: 6, bottom: 6 })
       .animation({ duration: 200 })
       .onClick(() => { this.activeType = type; this.dragIdx = -1; this.dragY = 0 })
@@ -194,7 +198,7 @@ export struct CategoryManagePage {
       Column() {
         Image($rawfile(cat.icon + '.svg')).width(22).height(22).fillColor($r('app.color.color_surface'))
       }
-      .width(44).height(44).borderRadius(22).backgroundColor(cat.color)
+      .width(44).height(44).borderRadius(22).backgroundColor(getUnifiedCategoryColor(cat.name))
       .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center).margin({ right: 14 })
 
       Text(cat.name).fontSize(16).fontColor($r('app.color.color_text_primary')).layoutWeight(1)
@@ -219,14 +223,17 @@ export struct CategoryManagePage {
   }
 
   build() {
-    Column() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      WaterPageBg()
+
+      Column() {
       Row() {
         Image($rawfile('icon_chevron_left.svg')).width(24).height(24)
           .fillColor($r('app.color.color_text_primary')).onClick(() => { this.onBack() })
         Text('分类管理').fontSize(18).fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.color_text_primary')).layoutWeight(1).textAlign(TextAlign.Center)
         Column().width(24)
-      }.width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 })
+      }.width('100%').padding({ left: 16, right: 16, top: this.sbHeight + 10, bottom: 10 })
 
       Row({ space: 8 }) {
         this.TypeTab('支出', 'expense')
@@ -236,51 +243,56 @@ export struct CategoryManagePage {
       Text('长按拖拽调整顺序').fontSize(12).fontColor($r('app.color.color_text_secondary'))
         .width('100%').textAlign(TextAlign.Center).margin({ bottom: 8 })
 
-      Stack({ alignContent: Alignment.TopStart }) {
-        // 底层列表（数组顺序不变，靠 translate 模拟位移）
-        Column() {
-          ForEach(this.getList(), (cat: CategoryRecord, index: number) => {
-            Column() {
-              if (this.dragIdx === index) {
-                // 占位：半透明虚线框
-                Row()
-                  .width('100%').height(ITEM_H)
-                  .backgroundColor($r('app.color.color_bg'))
-                  .border({ width: 1, color: $r('app.color.color_divider'), style: BorderStyle.Dashed })
-                  .borderRadius(8)
-                  .opacity(0.6)
-              } else {
-                this.ItemContent(cat, this.dragIdx < 0)
+      Scroll() {
+        Stack({ alignContent: Alignment.TopStart }) {
+          // 底层列表（数组顺序不变，靠 translate 模拟位移）
+          Column() {
+            ForEach(this.getList(), (cat: CategoryRecord, index: number) => {
+              Column() {
+                if (this.dragIdx === index) {
+                  Row()
+                    .width('100%').height(ITEM_H)
+                    .backgroundColor($r('app.color.color_bg'))
+                    .border({ width: 1, color: $r('app.color.color_divider'), style: BorderStyle.Dashed })
+                    .borderRadius(8)
+                    .opacity(0.6)
+                } else {
+                  this.ItemContent(cat, this.dragIdx < 0)
+                }
               }
-            }
-            .translate({ x: 0, y: this.getItemShift(index) })
-            .animation({ duration: 300, curve: Curve.FastOutSlowIn })
-            .gesture(
-              GestureGroup(GestureMode.Sequence,
-                LongPressGesture({ repeat: false, duration: 300 })
-                  .onAction(() => { this.handleDragStart(index) }),
-                PanGesture({ direction: PanDirection.Vertical })
-                  .onActionUpdate((e: GestureEvent) => { if (e) this.handleDragMove(e.offsetY) })
-                  .onActionEnd(() => { this.handleDragEnd() })
-                  .onActionCancel(() => { this.handleDragEnd() })
+              .translate({ x: 0, y: this.getItemShift(index) })
+              .animation({ duration: 300, curve: Curve.FastOutSlowIn })
+              .gesture(
+                GestureGroup(GestureMode.Sequence,
+                  LongPressGesture({ repeat: false, duration: 300 })
+                    .onAction(() => { this.handleDragStart(index) }),
+                  PanGesture({ direction: PanDirection.Vertical })
+                    .onActionUpdate((e: GestureEvent) => { if (e) this.handleDragMove(e.offsetY) })
+                    .onActionEnd(() => { this.handleDragEnd() })
+                    .onActionCancel(() => { this.handleDragEnd() })
+                )
               )
-            )
-          }, (cat: CategoryRecord) => cat.id.toString())
-        }.width('100%')
-
-        // 浮层（跟手，无动画延迟）
-        if (this.dragIdx >= 0 && this.dragIdx < this.getList().length) {
-          Row() {
-            this.ItemContent(this.getList()[this.dragIdx], false)
+            }, (cat: CategoryRecord) => cat.id.toString())
           }
-          .width('100%').height(ITEM_H)
-          .backgroundColor($r('app.color.color_surface'))
-          .borderRadius(14)
-          .shadow({ radius: 20, color: 'rgba(0,0,0,0.18)', offsetY: 6 })
-          .scale({ x: 1.03, y: 1.03 })
-          .translate({ x: 0, y: this.getFloatY() })
-          .hitTestBehavior(HitTestMode.None)
+          .width('100%')
+
+          // 浮层（跟手，无动画延迟）
+          if (this.dragIdx >= 0 && this.dragIdx < this.getList().length) {
+            Row() {
+              this.ItemContent(this.getList()[this.dragIdx], false)
+            }
+            .width('100%').height(ITEM_H)
+            .backgroundColor($r('app.color.color_surface'))
+            .borderRadius(14)
+            .shadow({ radius: 20, color: 'rgba(0,0,0,0.18)', offsetY: 6 })
+            .scale({ x: 1.03, y: 1.03 })
+            .translate({ x: 0, y: this.getFloatY() })
+            .hitTestBehavior(HitTestMode.None)
+          }
         }
+        .width('100%')
+        .height(this.getList().length * ITEM_H)
+        .constraintSize({ minHeight: '100%' })
       }
       .layoutWeight(1)
       .width('calc(100% - 32vp)')
@@ -288,15 +300,21 @@ export struct CategoryManagePage {
       .borderRadius(20)
       .margin({ left: 16, right: 16 })
       .clip(true)
+      .scrollBar(BarState.Off)
 
       Blank()
 
       Button('+ 添加分类')
         .width('calc(100% - 32vp)').height(48).fontSize(15).fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.color_primary')).backgroundColor($r('app.color.color_surface'))
-        .borderRadius(24).border({ width: 1, color: $r('app.color.color_primary'), style: BorderStyle.Dashed })
+        .fontColor($r('app.color.color_accent')).backgroundColor($r('app.color.color_surface'))
+        .borderRadius(24).border({ width: 1, color: $r('app.color.color_accent'), style: BorderStyle.Dashed })
         .margin({ left: 16, right: 16, top: 12, bottom: 20 })
         .onClick(() => { this.openAddDialog() })
-    }.width('100%').height('100%').backgroundColor($r('app.color.color_bg'))
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor(Color.Transparent)
+    }
+    .width('100%').height('100%')
   }
 }

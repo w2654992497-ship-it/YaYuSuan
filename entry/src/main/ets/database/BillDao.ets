@@ -5,6 +5,8 @@ import { FilterOptions } from '../model/FilterOptions'
 import { SearchFilterOptions } from '../model/SearchFilterOptions'
 import { CategoryStat, MonthStat, DaySummary } from '../model/StatResult'
 import { DBHelper } from './DBHelper'
+import { AccountBookDao } from './AccountBookDao'
+import { PaymentAccountDao } from './PaymentAccountDao'
 import { getCategoryColor } from '../model/Category'
 
 export class BillDao {
@@ -23,19 +25,38 @@ export class BillDao {
     return DBHelper.getInstance().getStore()
   }
 
+  private getCurrentUserId(): number {
+    const userId = AppStorage.get<number>('currentUserId')
+    if (userId !== undefined && userId > 0) {
+      return userId
+    }
+    return 1
+  }
+
+  private getCurrentBookId(): number {
+    return AccountBookDao.getInstance().getCurrentBookId()
+  }
+
   async insert(bill: Bill): Promise<number> {
     try {
       const store = this.getStore()
+      const paymentAccountId = bill.paymentAccountId === undefined ? 0 : bill.paymentAccountId
       const valueBucket: relationalStore.ValuesBucket = {
+        userId: this.getCurrentUserId(),
+        bookId: this.getCurrentBookId(),
         amount: bill.amount,
         type: bill.type,
         category: bill.category,
+        categoryId: bill.categoryId,
+        paymentAccountId: paymentAccountId,
+        paymentAccountName: bill.paymentAccountName === undefined ? '' : bill.paymentAccountName,
         remark: bill.remark,
         date: bill.date,
         createdAt: bill.createdAt
       }
       const rowId = await store.insert('bills', valueBucket)
-      LogUtils.info('BillDao', 'Inserted bill rowId=%{public}d', String(rowId))
+      await PaymentAccountDao.getInstance().applyBillBalanceChange(paymentAccountId, bill.type, bill.amount, false)
+      LogUtils.info('BillDao', 'Inserted bill rowId=%{public}s', String(rowId))
       return rowId
     } catch (err) {
       LogUtils.error('BillDao', 'insert failed: %{public}s', JSON.stringify(err))
@@ -45,14 +66,52 @@ export class BillDao {
 
   async deleteById(id: number): Promise<void> {
     try {
+      const deletedBill = await this.queryById(id)
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('bills')
       predicates.equalTo('id', id)
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       await store.delete(predicates)
-      LogUtils.info('BillDao', 'Deleted bill id=%{public}d', String(id))
+      if (deletedBill !== null) {
+        const paymentAccountId = deletedBill.paymentAccountId === undefined ? 0 : deletedBill.paymentAccountId
+        await PaymentAccountDao.getInstance().applyBillBalanceChange(paymentAccountId, deletedBill.type, deletedBill.amount, true)
+      }
+      LogUtils.info('BillDao', 'Deleted bill id=%{public}s', String(id))
     } catch (err) {
       LogUtils.error('BillDao', 'deleteById failed: %{public}s', JSON.stringify(err))
       throw new Error(String(err))
+    }
+  }
+
+  async queryById(id: number): Promise<Bill | null> {
+    try {
+      const store = this.getStore()
+      const predicates = new relationalStore.RdbPredicates('bills')
+      predicates.equalTo('id', id)
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
+      const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'categoryId', 'paymentAccountId', 'paymentAccountName', 'remark', 'date', 'createdAt'])
+      let bill: Bill | null = null
+      if (resultSet.goToNextRow()) {
+        bill = {
+          id: resultSet.getLong(resultSet.getColumnIndex('id')),
+          amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
+          type: resultSet.getString(resultSet.getColumnIndex('type')) as 'income' | 'expense',
+          category: resultSet.getString(resultSet.getColumnIndex('category')),
+          categoryId: resultSet.getLong(resultSet.getColumnIndex('categoryId')),
+          paymentAccountId: resultSet.getLong(resultSet.getColumnIndex('paymentAccountId')),
+          paymentAccountName: resultSet.getString(resultSet.getColumnIndex('paymentAccountName')),
+          remark: resultSet.getString(resultSet.getColumnIndex('remark')),
+          date: resultSet.getString(resultSet.getColumnIndex('date')),
+          createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+        }
+      }
+      resultSet.close()
+      return bill
+    } catch (err) {
+      LogUtils.error('BillDao', 'queryById failed: %{public}s', JSON.stringify(err))
+      return null
     }
   }
 
@@ -60,6 +119,8 @@ export class BillDao {
     try {
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('bills')
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
 
       if (filter.month && filter.month.length > 0) {
         predicates.like('date', `${filter.month}%`)
@@ -74,7 +135,7 @@ export class BillDao {
       predicates.orderByDesc('date')
       predicates.orderByDesc('createdAt')
 
-      const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'remark', 'date', 'createdAt'])
+      const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'categoryId', 'paymentAccountId', 'paymentAccountName', 'remark', 'date', 'createdAt'])
       const bills: Bill[] = []
 
       while (resultSet.goToNextRow()) {
@@ -83,6 +144,9 @@ export class BillDao {
           amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
           type: resultSet.getString(resultSet.getColumnIndex('type')) as 'income' | 'expense',
           category: resultSet.getString(resultSet.getColumnIndex('category')),
+          categoryId: resultSet.getLong(resultSet.getColumnIndex('categoryId')),
+          paymentAccountId: resultSet.getLong(resultSet.getColumnIndex('paymentAccountId')),
+          paymentAccountName: resultSet.getString(resultSet.getColumnIndex('paymentAccountName')),
           remark: resultSet.getString(resultSet.getColumnIndex('remark')),
           date: resultSet.getString(resultSet.getColumnIndex('date')),
           createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
@@ -101,6 +165,8 @@ export class BillDao {
     try {
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('bills')
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
 
       if (filter.type !== 'all') {
         predicates.equalTo('type', filter.type)
@@ -118,7 +184,7 @@ export class BillDao {
       predicates.orderByDesc('date')
       predicates.orderByDesc('createdAt')
 
-      const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'remark', 'date', 'createdAt'])
+      const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'categoryId', 'paymentAccountId', 'paymentAccountName', 'remark', 'date', 'createdAt'])
       const bills: Bill[] = []
 
       while (resultSet.goToNextRow()) {
@@ -127,6 +193,9 @@ export class BillDao {
           amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
           type: resultSet.getString(resultSet.getColumnIndex('type')) as 'income' | 'expense',
           category: resultSet.getString(resultSet.getColumnIndex('category')),
+          categoryId: resultSet.getLong(resultSet.getColumnIndex('categoryId')),
+          paymentAccountId: resultSet.getLong(resultSet.getColumnIndex('paymentAccountId')),
+          paymentAccountName: resultSet.getString(resultSet.getColumnIndex('paymentAccountName')),
           remark: resultSet.getString(resultSet.getColumnIndex('remark')),
           date: resultSet.getString(resultSet.getColumnIndex('date')),
           createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
@@ -143,7 +212,7 @@ export class BillDao {
   async queryCategoryStats(month: string, type: string): Promise<CategoryStat[]> {
     try {
       const store = this.getStore()
-      let whereClause = `type = '${type}'`
+      let whereClause = `userId = ${this.getCurrentUserId()} AND bookId = ${this.getCurrentBookId()} AND type = '${type}'`
       if (month && month.length > 0) {
         whereClause += ` AND date LIKE '${month}%'`
       }
@@ -184,8 +253,10 @@ export class BillDao {
       const monthStats: MonthStat[] = []
 
       for (const month of months) {
-        const incomeSql = `SELECT SUM(amount) as total FROM bills WHERE type = 'income' AND date LIKE '${month}%'`
-        const expenseSql = `SELECT SUM(amount) as total FROM bills WHERE type = 'expense' AND date LIKE '${month}%'`
+        const userId = this.getCurrentUserId()
+        const bookId = this.getCurrentBookId()
+        const incomeSql = `SELECT SUM(amount) as total FROM bills WHERE userId = ${userId} AND bookId = ${bookId} AND type = 'income' AND date LIKE '${month}%'`
+        const expenseSql = `SELECT SUM(amount) as total FROM bills WHERE userId = ${userId} AND bookId = ${bookId} AND type = 'expense' AND date LIKE '${month}%'`
 
         const incomeResult = await store.querySql(incomeSql)
         let income = 0
@@ -219,10 +290,12 @@ export class BillDao {
   async queryDailySummary(month: string): Promise<DaySummary[]> {
     try {
       const store = this.getStore()
+      const userId = this.getCurrentUserId()
+      const bookId = this.getCurrentBookId()
       const sql = `SELECT date, ` +
         `SUM(CASE WHEN type='income' THEN amount ELSE 0 END) as income, ` +
         `SUM(CASE WHEN type='expense' THEN amount ELSE 0 END) as expense ` +
-        `FROM bills WHERE date LIKE '${month}%' GROUP BY date ORDER BY date ASC`
+        `FROM bills WHERE userId = ${userId} AND bookId = ${bookId} AND date LIKE '${month}%' GROUP BY date ORDER BY date ASC`
       const resultSet = await store.querySql(sql)
       const result: DaySummary[] = []
       while (resultSet.goToNextRow()) {

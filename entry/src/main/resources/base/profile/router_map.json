@@ -1,0 +1,89 @@
+{
+  "routerMap": [
+    {
+      "name": "billSearch",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "BillSearchRouteBuilder"
+    },
+    {
+      "name": "categoryManage",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "CategoryManageRouteBuilder"
+    },
+    {
+      "name": "expenseRankingAll",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "ExpenseRankingAllRouteBuilder"
+    },
+    {
+      "name": "budgetSettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "BudgetSettingsRouteBuilder"
+    },
+    {
+      "name": "periodBill",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "PeriodBillRouteBuilder"
+    },
+    {
+      "name": "accountSettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "AccountSettingsRouteBuilder"
+    },
+    {
+      "name": "accountCreate",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "AccountCreateRouteBuilder"
+    },
+    {
+      "name": "accountEdit",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "AccountEditRouteBuilder"
+    },
+    {
+      "name": "themeMode",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "ThemeModeRouteBuilder"
+    },
+    {
+      "name": "generalSettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "GeneralSettingsRouteBuilder"
+    },
+    {
+      "name": "userDataSettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "UserDataSettingsRouteBuilder"
+    },
+    {
+      "name": "dataTools",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "DataToolsRouteBuilder"
+    },
+    {
+      "name": "privacySettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "PrivacySettingsRouteBuilder"
+    },
+    {
+      "name": "syncSettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "SyncSettingsRouteBuilder"
+    },
+    {
+      "name": "securitySettings",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "SecuritySettingsRouteBuilder"
+    },
+    {
+      "name": "feedbackPage",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "FeedbackRouteBuilder"
+    },
+    {
+      "name": "aboutPage",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "AboutRouteBuilder"
+    }
+  ]
+}

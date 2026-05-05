@@ -2,6 +2,7 @@ import { relationalStore } from '@kit.ArkData'
 import { CategoryRecord, refreshCategoryCache } from '../model/Category'
 import { LogUtils } from '../utils/LogUtils'
 import { DBHelper } from './DBHelper'
+import { AccountBookDao } from './AccountBookDao'
 
 export class CategoryDao {
   private static instance: CategoryDao | null = null
@@ -17,6 +18,18 @@ export class CategoryDao {
 
   private getStore(): relationalStore.RdbStore {
     return DBHelper.getInstance().getStore()
+  }
+
+  private getCurrentUserId(): number {
+    const userId = AppStorage.get<number>('currentUserId')
+    if (userId !== undefined && userId > 0) {
+      return userId
+    }
+    return 1
+  }
+
+  private getCurrentBookId(): number {
+    return AccountBookDao.getInstance().getCurrentBookId()
   }
 
   private rowToRecord(rs: relationalStore.ResultSet): CategoryRecord {
@@ -40,6 +53,8 @@ export class CategoryDao {
     try {
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('categories')
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       predicates.equalTo('type', type)
       predicates.orderByAsc('sort_order')
       const rs = await store.query(predicates)
@@ -59,6 +74,8 @@ export class CategoryDao {
     try {
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('categories')
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       predicates.orderByAsc('type')
       predicates.orderByAsc('sort_order')
       const rs = await store.query(predicates)
@@ -79,6 +96,8 @@ export class CategoryDao {
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('categories')
       predicates.equalTo('id', id)
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       const rs = await store.query(predicates)
       let record: CategoryRecord | null = null
       if (rs.goToNextRow()) {
@@ -96,6 +115,8 @@ export class CategoryDao {
     try {
       const store = this.getStore()
       const predicates = new relationalStore.RdbPredicates('categories')
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       predicates.equalTo('name', name)
       predicates.equalTo('type', type)
       const rs = await store.query(predicates)
@@ -115,6 +136,8 @@ export class CategoryDao {
     try {
       const store = this.getStore()
       const bucket: relationalStore.ValuesBucket = {
+        userId: this.getCurrentUserId(),
+        bookId: this.getCurrentBookId(),
         name: cat.name,
         icon: cat.icon,
         color: cat.color,
@@ -142,12 +165,14 @@ export class CategoryDao {
       }
       const predicates = new relationalStore.RdbPredicates('categories')
       predicates.equalTo('id', cat.id)
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       await store.update(bucket, predicates)
 
       // 分类重命名时同步更新 bills 表
       if (oldName && oldName !== cat.name) {
         await store.executeSql(
-          `UPDATE bills SET category = '${cat.name}' WHERE category = '${oldName}'`
+          `UPDATE bills SET category = '${cat.name}' WHERE userId = ${this.getCurrentUserId()} AND bookId = ${this.getCurrentBookId()} AND category = '${oldName}'`
         )
       }
       await this.refreshCache()
@@ -166,6 +191,8 @@ export class CategoryDao {
 
       const predicates = new relationalStore.RdbPredicates('categories')
       predicates.equalTo('id', id)
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
       await store.delete(predicates)
       await this.refreshCache()
       return true
@@ -182,6 +209,8 @@ export class CategoryDao {
         const bucket: relationalStore.ValuesBucket = { sort_order: i }
         const predicates = new relationalStore.RdbPredicates('categories')
         predicates.equalTo('id', items[i].id)
+        predicates.equalTo('userId', this.getCurrentUserId())
+        predicates.equalTo('bookId', this.getCurrentBookId())
         await store.update(bucket, predicates)
       }
     } catch (err) {
@@ -192,7 +221,7 @@ export class CategoryDao {
   async getMaxSortOrder(type: string): Promise<number> {
     try {
       const store = this.getStore()
-      const rs = await store.querySql(`SELECT MAX(sort_order) as max_order FROM categories WHERE type = '${type}'`)
+      const rs = await store.querySql(`SELECT MAX(sort_order) as max_order FROM categories WHERE userId = ${this.getCurrentUserId()} AND bookId = ${this.getCurrentBookId()} AND type = '${type}'`)
       let maxOrder = 0
       if (rs.goToNextRow()) {
         const val = rs.getLong(rs.getColumnIndex('max_order'))

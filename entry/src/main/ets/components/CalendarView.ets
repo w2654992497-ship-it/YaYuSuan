@@ -3,20 +3,10 @@ import { FilterOptions } from '../model/FilterOptions'
 import { DaySummary } from '../model/StatResult'
 import { BillDao } from '../database/BillDao'
 import { CalendarGrid } from './CalendarGrid'
-import { BillItem } from './BillItem'
+import { getCategoryColor, getCategoryInfo } from '../model/Category'
 import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
 import { LogUtils } from '../utils/LogUtils'
-import { CategoryRecord } from '../model/Category'
-import { CategoryDao } from '../database/CategoryDao'
-import { preferences } from '@kit.ArkData'
-
-interface BudgetProgress {
-  name: string
-  color: string
-  budgetFen: number
-  usedFen: number
-}
 
 @Component
 export struct CalendarView {
@@ -24,27 +14,43 @@ export struct CalendarView {
   @Prop currentMonth: string = ''
   @Watch('onRefreshKeyChanged')
   @Prop refreshKey: number = 0
+  @Watch('onTodaySignalChanged')
+  @Prop todaySignal: number = 0
+  @Consume activeTabIndex: number
   @State selectedDate: string = DateUtil.today()
   @State daySummaries: DaySummary[] = []
   @State monthIncome: number = 0
   @State monthExpense: number = 0
   @State dayBills: Bill[] = []
-  @State budgetList: BudgetProgress[] = []
   onDeleteBill: (id: number) => void = () => {}
 
-  onMonthChanged(): void { this.loadMonthData() }
-  onRefreshKeyChanged(): void { this.loadMonthData() }
-  aboutToAppear(): void { this.loadMonthData() }
+  onMonthChanged(): void {
+    this.loadMonthData()
+  }
 
-  async loadMonthData(): Promise<void> {
+  onRefreshKeyChanged(): void {
+    this.loadMonthData()
+  }
+
+  onTodaySignalChanged(): void {
+    this.selectedDate = DateUtil.today()
+    this.loadMonthData()
+  }
+
+  aboutToAppear(): void {
+    this.loadMonthData()
+  }
+
+  private async loadMonthData(): Promise<void> {
     try {
-      this.daySummaries = await BillDao.getInstance().queryDailySummary(this.currentMonth)
+      const summaries = await BillDao.getInstance().queryDailySummary(this.currentMonth)
       let income = 0
       let expense = 0
-      for (const s of this.daySummaries) {
-        income += s.income
-        expense += s.expense
+      for (let i = 0; i < summaries.length; i++) {
+        income += summaries[i].income
+        expense += summaries[i].expense
       }
+      this.daySummaries = summaries
       this.monthIncome = income
       this.monthExpense = expense
 
@@ -52,39 +58,23 @@ export struct CalendarView {
         const today = DateUtil.today()
         this.selectedDate = today.startsWith(this.currentMonth) ? today : `${this.currentMonth}-01`
       }
-      await this.loadBudgetProgress()
       await this.loadDayBills()
     } catch (err) {
       LogUtils.error('CalendarView', 'loadMonthData: %{public}s', JSON.stringify(err))
     }
   }
 
-  private async loadBudgetProgress(): Promise<void> {
-    try {
-      const pref = await preferences.getPreferences(this.getUIContext().getHostContext()!, { name: 'yayusuan_budget' })
-      const filter: FilterOptions = { month: this.currentMonth, type: 'expense', category: '' }
-      const bills = await BillDao.getInstance().queryByFilter(filter)
-      const usageMap: Map<string, number> = new Map()
-      for (const b of bills) {
-        usageMap.set(b.category, (usageMap.get(b.category) ?? 0) + b.amount)
-      }
-      const result: BudgetProgress[] = []
-      const categories: CategoryRecord[] = await CategoryDao.getInstance().queryByType('expense')
-      for (const cat of categories) {
-        const budgetFen = await pref.get(`budget_id_${cat.id}`, 0) as number
-        if (budgetFen > 0) {
-          result.push({ name: cat.name, color: cat.color, budgetFen: budgetFen, usedFen: usageMap.get(cat.name) ?? 0 })
-        }
-      }
-      this.budgetList = result
-    } catch (_e) { this.budgetList = [] }
-  }
-
   private async loadDayBills(): Promise<void> {
     try {
       const filter: FilterOptions = { month: this.currentMonth, type: 'all', category: '' }
       const allBills = await BillDao.getInstance().queryByFilter(filter)
-      this.dayBills = allBills.filter((b: Bill): boolean => b.date === this.selectedDate)
+      const result: Bill[] = []
+      for (let i = 0; i < allBills.length; i++) {
+        if (allBills[i].date === this.selectedDate) {
+          result.push(allBills[i])
+        }
+      }
+      this.dayBills = result
     } catch (err) {
       LogUtils.error('CalendarView', 'loadDayBills: %{public}s', JSON.stringify(err))
       this.dayBills = []
@@ -96,212 +86,275 @@ export struct CalendarView {
     this.loadDayBills()
   }
 
-  private getSelectedDaySummary(): DaySummary {
-    return this.daySummaries.find((s: DaySummary): boolean => s.date === this.selectedDate)
-      ?? { date: this.selectedDate, income: 0, expense: 0 }
+  private selectedIncome(): number {
+    for (let i = 0; i < this.daySummaries.length; i++) {
+      if (this.daySummaries[i].date === this.selectedDate) {
+        return this.daySummaries[i].income
+      }
+    }
+    return 0
   }
 
-  private formatBalance(income: number, expense: number): string {
-    const balance = income - expense
-    if (balance >= 0) return `+${AmountUtil.fen2Display(balance)}`
-    return `-${AmountUtil.fen2Display(balance * -1)}`
+  private selectedExpense(): number {
+    for (let i = 0; i < this.daySummaries.length; i++) {
+      if (this.daySummaries[i].date === this.selectedDate) {
+        return this.daySummaries[i].expense
+      }
+    }
+    return 0
+  }
+
+  private monthBalance(): number {
+    return this.monthIncome - this.monthExpense
+  }
+
+  private selectedDateTitle(): string {
+    const parts = this.selectedDate.split('-')
+    if (parts.length !== 3) {
+      return this.selectedDate
+    }
+    const month = parseInt(parts[1], 10)
+    const day = parseInt(parts[2], 10)
+    const weekLabels: string[] = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const date = new Date(this.selectedDate)
+    let title = `${month}月${day}日 ${weekLabels[date.getDay()]}`
+    if (this.selectedDate === DateUtil.today()) {
+      title = `${title} · 今天`
+    }
+    return title
   }
 
   @Builder
-  DeleteBuilder(bill: Bill) {
-    Column() {
-      Image($rawfile('icon_other.svg')).width(20).height(20).fillColor('#FFFFFF').margin({ bottom: 4 })
-      Text('删除').fontSize(12).fontColor('#FFFFFF')
-    }
-    .width(72).height('100%')
-    .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
-    .backgroundColor('#F44336')
-    .onClick(() => {
-      this.getUIContext().showAlertDialog({
-        title: '删除账单',
-        message: `确认删除「${bill.category}」这条记录吗？`,
-        primaryButton: { value: '取消', fontColor: '#1976D2', action: () => {} },
-        secondaryButton: { value: '删除', fontColor: '#F44336', action: () => { this.onDeleteBill(bill.id) } },
-        alignment: DialogAlignment.Bottom,
-        offset: { dx: 0, dy: -20 }
-      })
-    })
-  }
+  BillRow(bill: Bill) {
+    Row() {
+      Row() {
+        Image($rawfile(getCategoryInfo(bill.category).icon + '.svg'))
+          .width(20)
+          .height(20)
+          .fillColor($r('app.color.color_white'))
+      }
+      .width(42)
+      .height(42)
+      .borderRadius(21)
+      .backgroundColor(getCategoryColor(bill.category))
+      .justifyContent(FlexAlign.Center)
+      .margin({ right: 12 })
 
-  @Builder
-  SummaryPill(label: string, value: string, color: string) {
-    Column() {
-      Text(label).fontSize(10).fontColor('#757575')
-      Text(value).fontSize(15).fontColor(color).fontWeight(FontWeight.Medium).margin({ top: 2 })
+      Column() {
+        Row() {
+          Text(bill.category)
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.color_text_deep'))
+            .margin({ right: 10 })
+          if (bill.remark.length > 0) {
+            Text(bill.remark)
+              .fontSize(13)
+              .fontColor($r('app.color.color_text_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+        }
+        .width('100%')
+
+        Text(DateUtil.getRelativeTime(bill.createdAt))
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+          .margin({ top: 3 })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Text(`${bill.type === 'income' ? '+' : '-'}¥${AmountUtil.fen2Display(bill.amount)}`)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(bill.type === 'income' ? $r('app.color.color_income') : $r('app.color.color_expense'))
+        .margin({ right: 8 })
+
+      Image($rawfile('icon_chevron_right.svg'))
+        .width(14)
+        .height(14)
+        .fillColor($r('app.color.color_text_secondary'))
     }
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Center)
+    .width('100%')
+    .height(58)
+    .padding({ left: 12, right: 10 })
+    .alignItems(VerticalAlign.Center)
   }
 
   build() {
     Scroll() {
       Column() {
-        // ── 日历网格 ──
+        Row() {
+          Column() {
+            Text('本月收入')
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_secondary'))
+            Text(`¥${AmountUtil.fen2Display(this.monthIncome)}`)
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.color_income'))
+              .margin({ top: 3 })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Center)
+
+          Divider().vertical(true).height(30).color($r('app.color.color_divider'))
+
+          Column() {
+            Text('本月支出')
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_secondary'))
+            Text(`¥${AmountUtil.fen2Display(this.monthExpense)}`)
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.color_expense'))
+              .margin({ top: 3 })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Center)
+
+          Divider().vertical(true).height(30).color($r('app.color.color_divider'))
+
+          Column() {
+            Text('本月结余')
+              .fontSize(12)
+              .fontColor($r('app.color.color_text_secondary'))
+            Text(`${this.monthBalance() < 0 ? '-' : ''}¥${AmountUtil.fen2Display(Math.abs(this.monthBalance()))}`)
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(this.monthBalance() < 0 ? $r('app.color.color_primary') : $r('app.color.color_income'))
+              .margin({ top: 3 })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Center)
+        }
+        .width('calc(100% - 32vp)')
+        .height(58)
+        .padding({ left: 12, right: 12 })
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(16)
+        .border({ width: 1, color: $r('app.color.color_divider') })
+        .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
+        .margin({ left: 16, right: 16, top: 4, bottom: 8 })
+
         Column() {
           CalendarGrid({
             currentMonth: this.currentMonth,
             selectedDate: this.selectedDate,
             daySummaries: this.daySummaries,
-            onSelectDate: (date: string) => { this.onDateSelected(date) }
+            onSelectDate: (date: string) => {
+              this.onDateSelected(date)
+            }
           })
         }
-        .width('100%')
-        .backgroundColor('#FFFFFF')
-        .borderRadius({ topLeft: 0, topRight: 0, bottomLeft: 14, bottomRight: 14 })
-        .padding({ left: 6, right: 6, top: 0, bottom: 4 })
-        .shadow({ radius: 4, color: '#0A000000', offsetX: 0, offsetY: 2 })
+        .width('calc(100% - 32vp)')
+        .padding({ left: 10, right: 10, top: 10, bottom: 8 })
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(16)
+        .border({ width: 1, color: $r('app.color.color_divider') })
+        .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
+        .margin({ left: 16, right: 16, top: 0, bottom: 8 })
 
-        // ── 月度汇总条 ──
-        Row() {
-          this.SummaryPill('收入', `¥${AmountUtil.fen2Display(this.monthIncome)}`, '#4CAF50')
-
-          Divider().vertical(true).height(26).color('#E0E0E0')
-
-          this.SummaryPill('支出', `¥${AmountUtil.fen2Display(this.monthExpense)}`, '#F44336')
-
-          Divider().vertical(true).height(26).color('#E0E0E0')
-
-          this.SummaryPill('结余', this.formatBalance(this.monthIncome, this.monthExpense),
-            (this.monthIncome - this.monthExpense) >= 0 ? '#4CAF50' : '#F44336')
-        }
-        .width('100%')
-        .padding({ top: 10, bottom: 10 })
-        .margin({ left: 12, right: 12, top: 10 })
-        .backgroundColor('#FFFFFF')
-        .borderRadius(12)
-        .shadow({ radius: 4, color: '#0A000000', offsetX: 0, offsetY: 1 })
-
-        // ── 预算进度 ──
-        if (this.budgetList.length > 0) {
-          Column() {
-            Row() {
-              Text('预算')
-                .fontSize(13).fontColor('#212121').fontWeight(FontWeight.Medium)
-              Blank()
-              Text('已用 / 上限')
-                .fontSize(10).fontColor('#757575')
-            }
-            .width('100%')
-            .margin({ bottom: 8 })
-
-            ForEach(this.budgetList, (bp: BudgetProgress) => {
-              Column() {
-                Row() {
-                  Text(bp.name).fontSize(12).fontColor('#212121')
-                  Blank()
-                  Text(`¥${AmountUtil.fen2Display(bp.usedFen)} / ¥${AmountUtil.fen2Display(bp.budgetFen)}`)
-                    .fontSize(10)
-                    .fontColor(bp.usedFen > bp.budgetFen ? '#F44336' : '#757575')
-                }
-                .width('100%')
-                .margin({ bottom: 4 })
-
-                Stack({ alignContent: Alignment.Start }) {
-                  Row().width('100%').height(4).borderRadius(2).backgroundColor('#F5F5F5')
-                  Row()
-                    .width(`${Math.min(bp.usedFen / bp.budgetFen * 100, 100)}%`)
-                    .height(4).borderRadius(2)
-                    .backgroundColor(bp.usedFen > bp.budgetFen ? '#F44336' : bp.color)
-                }
-                .width('100%')
-                .height(4)
-              }
-              .margin({ bottom: 8 })
-            }, (bp: BudgetProgress) => bp.name)
-          }
-          .width('100%')
-          .padding(12)
-          .margin({ left: 12, right: 12, top: 10 })
-          .backgroundColor('#FFFFFF')
-          .borderRadius(12)
-          .shadow({ radius: 4, color: '#0A000000', offsetX: 0, offsetY: 1 })
-        }
-
-        // ── 选中日期的账单 ──
         Column() {
-          // 日期头 + 当日汇总
           Row() {
-            // 日期标签
-            Row() {
-              Text(DateUtil.friendlyDate(this.selectedDate))
-                .fontSize(14)
-                .fontColor('#212121')
-                .fontWeight(FontWeight.Medium)
-            }
-
+            Text(this.selectedDateTitle())
+              .fontSize(15)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.color_text_deep'))
             Blank()
-
-            // 当日收支标签
-            if (this.getSelectedDaySummary().expense > 0) {
-              Text(`支 ¥${AmountUtil.fen2Display(this.getSelectedDaySummary().expense)}`)
-                .fontSize(11)
-                .fontColor('#F44336')
-                .backgroundColor('#FFF5F5')
-                .borderRadius(10)
+            if (this.selectedExpense() > 0) {
+              Text(`支出 ¥${AmountUtil.fen2Display(this.selectedExpense())}`)
+                .fontSize(14)
+                .fontColor($r('app.color.color_expense'))
                 .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                .margin({ right: 4 })
+                .backgroundColor('#FFFFECEC')
+                .borderRadius(14)
             }
-            if (this.getSelectedDaySummary().income > 0) {
-              Text(`收 ¥${AmountUtil.fen2Display(this.getSelectedDaySummary().income)}`)
-                .fontSize(11)
-                .fontColor('#4CAF50')
-                .backgroundColor('#F5FFF5')
-                .borderRadius(10)
+            if (this.selectedIncome() > 0) {
+              Text(`收入 ¥${AmountUtil.fen2Display(this.selectedIncome())}`)
+                .fontSize(14)
+                .fontColor($r('app.color.color_income'))
                 .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                .backgroundColor($r('app.color.color_selected_bg'))
+                .borderRadius(14)
+                .margin({ left: 6 })
             }
           }
           .width('100%')
-          .padding({ left: 14, right: 14, top: 12, bottom: 8 })
+          .padding({ left: 12, right: 12, top: 10 })
 
-          Divider().color('#F5F5F5').margin({ left: 14, right: 14 })
+          Row({ space: 6 }) {
+            Row() {
+              Text('+')
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor($r('app.color.color_white'))
+            }
+            .width(20)
+            .height(20)
+            .borderRadius(10)
+            .backgroundColor($r('app.color.color_primary'))
+            .justifyContent(FlexAlign.Center)
+
+            Text('记一笔')
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.color_primary'))
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 7, bottom: 7 })
+          .onClick(() => {
+            this.activeTabIndex = 2
+          })
 
           if (this.dayBills.length === 0) {
             Column() {
-              Image($rawfile('icon_tab_bills.svg'))
-                .width(40).height(40).fillColor('#E0E0E0').margin({ bottom: 8 })
+              Image($rawfile('icon_list.svg'))
+                .width(34)
+                .height(34)
+                .fillColor($r('app.color.color_divider'))
+                .margin({ bottom: 8 })
               Text('当日暂无账单')
-                .fontSize(13).fontColor('#757575')
+                .fontSize(13)
+                .fontColor($r('app.color.color_text_secondary'))
             }
             .width('100%')
-            .padding({ top: 30, bottom: 30 })
+            .padding({ top: 20, bottom: 24 })
             .alignItems(HorizontalAlign.Center)
           } else {
-            List() {
-              ForEach(this.dayBills, (bill: Bill) => {
-                ListItem() {
-                  BillItem({
-                    bill: bill,
-                    onDelete: () => { this.onDeleteBill(bill.id) }
-                  })
+            Column() {
+              ForEach(this.dayBills, (bill: Bill, index: number) => {
+                Column() {
+                  this.BillRow(bill)
+                  if (index < this.dayBills.length - 1) {
+                    Divider()
+                      .color($r('app.color.color_divider'))
+                      .margin({ left: 66, right: 12 })
+                  }
                 }
-                .swipeAction({ end: () => { this.DeleteBuilder(bill) } })
+                .width('100%')
               }, (bill: Bill) => bill.id.toString())
             }
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.None)
-            .divider({ strokeWidth: 0.5, color: '#F5F5F5', startMargin: 70 })
-            .nestedScroll({
-              scrollForward: NestedScrollMode.PARENT_FIRST,
-              scrollBackward: NestedScrollMode.SELF_FIRST
-            })
+            .width('100%')
+            .backgroundColor($r('app.color.color_white'))
+            .borderRadius(16)
+            .border({ width: 1, color: $r('app.color.color_divider') })
+            .clip(true)
           }
         }
-        .width('100%')
-        .margin({ left: 12, right: 12, top: 10, bottom: 16 })
-        .backgroundColor('#FFFFFF')
-        .borderRadius(12)
-        .shadow({ radius: 4, color: '#0A000000', offsetX: 0, offsetY: 1 })
-        .clip(true)
+        .width('calc(100% - 32vp)')
+        .padding({ left: 0, right: 0, top: 0, bottom: 10 })
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(16)
+        .border({ width: 1, color: $r('app.color.color_divider') })
+        .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
+        .margin({ left: 16, right: 16, top: 0, bottom: 12 })
       }
       .width('100%')
     }
-    .align(Alignment.Top)
     .layoutWeight(1)
+    .width('100%')
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
   }

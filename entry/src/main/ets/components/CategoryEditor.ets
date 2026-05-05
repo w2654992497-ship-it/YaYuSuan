@@ -1,11 +1,10 @@
-import { CategoryRecord } from '../model/Category'
+import { CategoryRecord, getUnifiedCategoryColor } from '../model/Category'
 import { CategoryDao } from '../database/CategoryDao'
-import { BillDao } from '../database/BillDao'
 import { CategoryEditDialog } from './CategoryEditDialog'
-import { LogUtils } from '../utils/LogUtils'
+import { WaterPageBg } from './WaterPageBg'
 
 const COLS = 4
-const CELL_H = 88
+const CELL_H = 66
 
 @Component
 export struct CategoryEditor {
@@ -25,8 +24,10 @@ export struct CategoryEditor {
 
   aboutToAppear(): void {
     this.loadCategories()
-    this.selectedName = AppStorage.get<string>('editCategorySelected') ?? ''
-    const t = AppStorage.get<string>('editCategoryType') ?? 'expense'
+    const selected = AppStorage.get<string>('editCategorySelected')
+    this.selectedName = selected ? selected : ''
+    const editType = AppStorage.get<string>('editCategoryType')
+    const t = editType ? editType : 'expense'
     this.activeType = t === 'income' ? 'income' : 'expense'
   }
 
@@ -36,13 +37,15 @@ export struct CategoryEditor {
       const income = await CategoryDao.getInstance().queryByType('income')
       const nextExpense: CategoryRecord[] = []
       const nextIncome: CategoryRecord[] = []
-      for (const c of expense) {
+      for (let i = 0; i < expense.length; i++) {
+        const c = expense[i]
         nextExpense.push({
           id: c.id, name: c.name, icon: c.icon, color: c.color,
           type: c.type, sort_order: c.sort_order, is_default: c.is_default
         })
       }
-      for (const c of income) {
+      for (let i = 0; i < income.length; i++) {
+        const c = income[i]
         nextIncome.push({
           id: c.id, name: c.name, icon: c.icon, color: c.color,
           type: c.type, sort_order: c.sort_order, is_default: c.is_default
@@ -58,13 +61,17 @@ export struct CategoryEditor {
   }
 
   private setCurrentList(list: CategoryRecord[]): void {
-    if (this.activeType === 'expense') this.expenseList = list
-    else this.incomeList = list
+    if (this.activeType === 'expense') {
+      this.expenseList = list
+    } else {
+      this.incomeList = list
+    }
   }
 
   private notifyCategoryChanged(): void {
     AppStorage.setOrCreate('editCategorySelected', this.selectedName)
-    const ver = AppStorage.get<number>('categoryVersion') ?? 0
+    const currentVersion = AppStorage.get<number>('categoryVersion')
+    const ver = currentVersion ? currentVersion : 0
     AppStorage.setOrCreate('categoryVersion', ver + 1)
   }
 
@@ -82,7 +89,12 @@ export struct CategoryEditor {
   }
 
   private getExistingNames(): string[] {
-    return this.currentList().map((c: CategoryRecord): string => c.name)
+    const names: string[] = []
+    const list = this.currentList()
+    for (let i = 0; i < list.length; i++) {
+      names.push(list[i].name)
+    }
+    return names
   }
 
   private editCat(cat: CategoryRecord): void {
@@ -143,11 +155,22 @@ export struct CategoryEditor {
         value: '重置', fontColor: $r('app.color.color_expense'),
         action: async () => {
           try {
-            for (const c of this.currentList()) {
-              if (c.is_default === 0) await CategoryDao.getInstance().deleteById(c.id)
+            const list = this.currentList()
+            for (let i = 0; i < list.length; i++) {
+              const c = list[i]
+              if (c.is_default === 0) {
+                await CategoryDao.getInstance().deleteById(c.id)
+              }
             }
             await this.loadCategories()
-            if (!this.currentList().some((c: CategoryRecord): boolean => c.name === this.selectedName)) {
+            const nextList = this.currentList()
+            let hasSelected = false
+            for (let i = 0; i < nextList.length; i++) {
+              if (nextList[i].name === this.selectedName) {
+                hasSelected = true
+              }
+            }
+            if (!hasSelected) {
               this.selectedName = ''
             }
             this.notifyCategoryChanged()
@@ -160,7 +183,8 @@ export struct CategoryEditor {
   private doClose(): void {
     AppStorage.setOrCreate('editCategorySelected', this.selectedName)
     // 触发记账页刷新分类
-    const ver = AppStorage.get<number>('categoryVersion') ?? 0
+    const currentVersion = AppStorage.get<number>('categoryVersion')
+    const ver = currentVersion ? currentVersion : 0
     AppStorage.setOrCreate('categoryVersion', ver + 1)
     this.onClose()
   }
@@ -244,7 +268,9 @@ export struct CategoryEditor {
     if (from !== to) {
       const list = this.currentList()
       const newList: CategoryRecord[] = []
-      for (const item of list) newList.push(item)
+      for (let i = 0; i < list.length; i++) {
+        newList.push(list[i])
+      }
       const moved = newList.splice(from, 1)
       newList.splice(to, 0, moved[0])
       this.dragIdx = -1
@@ -263,180 +289,282 @@ export struct CategoryEditor {
   @Builder
   CatIcon(cat: CategoryRecord, selected: boolean) {
     Column() {
-      Column() {
-        Image($rawfile(cat.icon + '.svg')).width(28).height(28)
-          .fillColor(selected ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
-          .draggable(false)
-      }
-      .width(56).height(56).borderRadius(28)
-      .backgroundColor(selected ? cat.color : $r('app.color.color_bg'))
-      .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      Image($rawfile(cat.icon + '.svg'))
+        .width(21)
+        .height(21)
+        .fillColor(getUnifiedCategoryColor(cat.name))
+        .draggable(false)
 
-      Text(cat.name).fontSize(12).margin({ top: 6 })
-        .fontColor(selected ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
+      Text(cat.name)
+        .fontSize(11)
+        .margin({ top: 5 })
+        .fontColor($r('app.color.color_text_deep'))
         .fontWeight(selected ? FontWeight.Medium : FontWeight.Normal)
     }
+    .width(46)
+    .height(54)
+    .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
+    .backgroundColor(selected ? $r('app.color.color_soft_blue') : $r('app.color.color_white'))
+    .borderRadius(10)
+    .border({ width: selected ? 1.5 : 1, color: selected ? $r('app.color.color_primary') : $r('app.color.color_divider') })
   }
 
   build() {
-    Column() {
-      // 顶部
+    Stack({ alignContent: Alignment.TopStart }) {
+      WaterPageBg()
+
+      Column() {
       Row() {
-        Text('取消').fontSize(15).fontColor($r('app.color.color_text_secondary'))
-          .onClick(() => { this.doClose() })
-        Text('编辑分类').fontSize(17).fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_text_primary'))
-          .layoutWeight(1).textAlign(TextAlign.Center)
-        Text(this.isSortMode ? '完成' : '排序').fontSize(15)
-          .fontColor($r('app.color.color_primary')).fontWeight(FontWeight.Medium)
+        Text('取消')
+          .fontSize(14)
+          .fontColor($r('app.color.color_text_secondary'))
           .onClick(() => {
-            if (this.isSortMode) { this.dragIdx = -1; this.dragOffX = 0; this.dragOffY = 0 }
+            this.doClose()
+          })
+        Text('编辑分类')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_deep'))
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+        Text(this.isSortMode ? '完成' : '排序')
+          .fontSize(14)
+          .fontColor($r('app.color.color_primary'))
+          .fontWeight(FontWeight.Medium)
+          .onClick(() => {
+            if (this.isSortMode) {
+              this.dragIdx = -1
+              this.dragOffX = 0
+              this.dragOffY = 0
+            }
             this.isSortMode = !this.isSortMode
           })
       }
-      .width('100%').padding({ left: 20, right: 20, top: this.sbHeight + 12, bottom: 10 })
+      .width('100%')
+      .padding({ left: 20, right: 20, top: this.sbHeight + 12, bottom: 8 })
 
-      // 切换
-      Row({ space: 8 }) {
-        Text('支出').fontSize(14)
-          .fontColor(this.activeType === 'expense' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
-          .fontWeight(this.activeType === 'expense' ? FontWeight.Medium : FontWeight.Normal)
-          .backgroundColor(this.activeType === 'expense' ? $r('app.color.color_duck') : $r('app.color.color_surface'))
-          .borderRadius(16).padding({ left: 20, right: 20, top: 6, bottom: 6 })
-          .onClick(() => { this.activeType = 'expense' })
-        Text('收入').fontSize(14)
-          .fontColor(this.activeType === 'income' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
-          .fontWeight(this.activeType === 'income' ? FontWeight.Medium : FontWeight.Normal)
-          .backgroundColor(this.activeType === 'income' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
-          .borderRadius(16).padding({ left: 20, right: 20, top: 6, bottom: 6 })
-          .onClick(() => { this.activeType = 'income' })
+      Row() {
+        Text('支出')
+          .fontSize(14)
+          .fontColor(this.activeType === 'expense' ? $r('app.color.color_white') : $r('app.color.color_icon_muted'))
+          .fontWeight(FontWeight.Bold)
+          .width('50%')
+          .height(34)
+          .textAlign(TextAlign.Center)
+          .backgroundColor(this.activeType === 'expense' ? $r('app.color.color_primary') : Color.Transparent)
+          .borderRadius(17)
+          .onClick(() => {
+            this.activeType = 'expense'
+          })
+        Text('收入')
+          .fontSize(14)
+          .fontColor(this.activeType === 'income' ? $r('app.color.color_white') : $r('app.color.color_icon_muted'))
+          .fontWeight(FontWeight.Bold)
+          .width('50%')
+          .height(34)
+          .textAlign(TextAlign.Center)
+          .backgroundColor(this.activeType === 'income' ? $r('app.color.color_primary') : Color.Transparent)
+          .borderRadius(17)
+          .onClick(() => {
+            this.activeType = 'income'
+          })
       }
-      .width('100%').justifyContent(FlexAlign.Center).padding({ bottom: 12 })
+      .width('calc(100% - 160vp)')
+      .height(38)
+      .padding(2)
+      .backgroundColor($r('app.color.color_card_overlay'))
+      .borderRadius(19)
+      .border({ width: 1, color: $r('app.color.color_divider') })
+      .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
+      .margin({ left: 80, right: 80, bottom: 8 })
 
       Text(this.isSortMode ? '长按拖拽排序，点击×删除' : '点击图标编辑内容')
-        .fontSize(12).fontColor($r('app.color.color_text_secondary'))
-        .width('100%').textAlign(TextAlign.Center).margin({ bottom: 8 })
+        .fontSize(11)
+        .fontColor($r('app.color.color_text_secondary'))
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .margin({ bottom: 8 })
 
-      // ── 网格区（Stack 浮层方案） ──
-      Stack({ alignContent: Alignment.TopStart }) {
-        // 底层网格
-        Flex({ wrap: FlexWrap.Wrap }) {
-          ForEach(this.currentList(), (cat: CategoryRecord, index: number) => {
-            Column() {
-              if (this.dragIdx === index) {
-                // 占位
-                Column().width(56).height(56).borderRadius(28)
-                  .backgroundColor($r('app.color.color_bg')).opacity(0.4)
-                Text(' ').fontSize(12).margin({ top: 6 })
-              } else {
-                Stack({ alignContent: Alignment.TopEnd }) {
-                  // 编辑页面始终显示彩色
-                  this.CatIcon(cat, true)
+      Column() {
+        Row() {
+          Text('分类')
+            .fontSize(17)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.color_text_deep'))
+          Blank()
+          Text(this.isSortMode ? '拖拽排序' : '编辑分类')
+            .fontSize(12)
+            .fontColor($r('app.color.color_text_secondary'))
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+        .margin({ bottom: 10 })
 
-                  // 叉号
-                  if (this.isSortMode && this.currentList().length > 1) {
-                    Text('×').fontSize(11).fontColor($r('app.color.color_surface'))
-                      .width(18).height(18).borderRadius(9).textAlign(TextAlign.Center)
-                      .backgroundColor($r('app.color.color_expense'))
-                      .onClick(() => { this.deleteCat(cat) })
+        Stack({ alignContent: Alignment.TopStart }) {
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(this.currentList(), (cat: CategoryRecord, index: number) => {
+              Column() {
+                if (this.dragIdx === index) {
+                  Column()
+                    .width(46)
+                    .height(54)
+                    .borderRadius(10)
+                    .backgroundColor($r('app.color.color_white'))
+                    .opacity(0.45)
+                } else {
+                  Stack({ alignContent: Alignment.TopEnd }) {
+                    this.CatIcon(cat, cat.name === this.selectedName)
+
+                    if (this.isSortMode && this.currentList().length > 1) {
+                      Text('×')
+                        .fontSize(11)
+                        .fontColor($r('app.color.color_white'))
+                        .width(18)
+                        .height(18)
+                        .borderRadius(9)
+                        .textAlign(TextAlign.Center)
+                        .backgroundColor($r('app.color.color_expense'))
+                        .onClick(() => {
+                          this.deleteCat(cat)
+                        })
+                    }
                   }
                 }
               }
+              .width('25%')
+              .height(CELL_H)
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+              .draggable(false)
+              .translate({ x: this.getShiftX(index), y: this.getShiftY(index) })
+              .animation(this.dragIdx >= 0 && this.dragIdx !== index
+                ? { duration: 280, curve: Curve.EaseInOut }
+                : { duration: 0 })
+              .gesture(
+                LongPressGesture({ repeat: false, duration: this.LONG_PRESS_MS })
+                  .onAction(() => {
+                    this.isSortMode = true
+                    this.dragIdx = index
+                    this.dragOffX = 0
+                    this.dragOffY = 0
+                  })
+              )
+              .onTouch((event: TouchEvent) => {
+                if (event.type === TouchType.Down) {
+                  const touch = event.touches[0]
+                  this.touchDownTime = Date.now()
+                  this.touchStartX = touch.x
+                  this.touchStartY = touch.y
+                } else if (event.type === TouchType.Move) {
+                  const touch = event.touches[0]
+                  if (this.dragIdx === index) {
+                    this.dragOffX = touch.x - this.touchStartX
+                    this.dragOffY = touch.y - this.touchStartY
+                  } else if (this.isSortMode && this.dragIdx < 0) {
+                    const dt = Date.now() - this.touchDownTime
+                    const dx = Math.abs(touch.x - this.touchStartX)
+                    const dy = Math.abs(touch.y - this.touchStartY)
+                    if (dt >= this.LONG_PRESS_MS && dx < 20 && dy < 20) {
+                      this.dragIdx = index
+                      this.dragOffX = 0
+                      this.dragOffY = 0
+                      this.touchStartX = touch.x
+                      this.touchStartY = touch.y
+                    }
+                  }
+                } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                  if (this.dragIdx === index) {
+                    this.finishDrag()
+                  }
+                  this.touchDownTime = 0
+                }
+              })
+              .onClick(() => {
+                if (!this.isSortMode) {
+                  this.selectedName = cat.name
+                  this.editCat(cat)
+                }
+              })
+            }, (cat: CategoryRecord) => this.renderKey(cat))
+          }
+          .width('100%')
+          .onAreaChange((_o: Area, n: Area) => {
+            const w = Number(n.width)
+            if (w > 0) {
+              this.cellW = w / COLS
+            }
+          })
+
+          if (this.dragIdx >= 0 && this.dragIdx < this.currentList().length) {
+            Column() {
+              this.CatIcon(this.currentList()[this.dragIdx], true)
             }
             .width('25%')
             .height(CELL_H)
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
-            .draggable(false)
-            // 被挤项偏移
-            .translate({ x: this.getShiftX(index), y: this.getShiftY(index) })
-            .animation(this.dragIdx >= 0 && this.dragIdx !== index
-              ? { duration: 280, curve: Curve.EaseInOut }
-              : { duration: 0 })
-            .onTouch((event: TouchEvent) => {
-              if (!this.isSortMode) return
-              const touch = event.touches[0]
-              if (event.type === TouchType.Down) {
-                this.touchDownTime = Date.now()
-                this.touchStartX = touch.x
-                this.touchStartY = touch.y
-              } else if (event.type === TouchType.Move) {
-                if (this.dragIdx === index) {
-                  // 已在拖拽：跟手
-                  this.dragOffX = touch.x - this.touchStartX
-                  this.dragOffY = touch.y - this.touchStartY
-                } else if (this.dragIdx < 0) {
-                  // 检测长按
-                  const dt = Date.now() - this.touchDownTime
-                  const dx = Math.abs(touch.x - this.touchStartX)
-                  const dy = Math.abs(touch.y - this.touchStartY)
-                  if (dt >= this.LONG_PRESS_MS && dx < 20 && dy < 20) {
-                    // 激活拖拽
-                    this.dragIdx = index
-                    this.dragOffX = 0
-                    this.dragOffY = 0
-                    this.touchStartX = touch.x
-                    this.touchStartY = touch.y
-                  }
-                }
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                if (this.dragIdx === index) {
-                  this.finishDrag()
-                }
-                this.touchDownTime = 0
-              }
-            })
+            .scale({ x: 1.08, y: 1.08 })
+            .translate({ x: this.getFloatX(), y: this.getFloatY() })
+            .hitTestBehavior(HitTestMode.None)
+          }
+        }
+      }
+      .width('calc(100% - 48vp)')
+      .layoutWeight(1)
+      .padding({ left: 14, right: 14, top: 14, bottom: 10 })
+      .backgroundColor($r('app.color.color_card_overlay'))
+      .borderRadius(18)
+      .border({ width: 1, color: $r('app.color.color_divider') })
+      .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
+      .margin({ left: 24, right: 24, bottom: 8 })
+
+      Column({ space: 8 }) {
+        Row({ space: 8 }) {
+          Button('+ 添加')
+            .layoutWeight(1)
+            .height(38)
+            .fontSize(13)
+            .fontColor($r('app.color.color_primary'))
+            .backgroundColor($r('app.color.color_card_overlay'))
+            .borderRadius(19)
+            .border({ width: 1, color: $r('app.color.color_primary') })
             .onClick(() => {
-              if (!this.isSortMode) this.editCat(cat)
+              this.addCat()
             })
-          }, (cat: CategoryRecord) => this.renderKey(cat))
+          Button('重置')
+            .layoutWeight(1)
+            .height(38)
+            .fontSize(13)
+            .fontColor($r('app.color.color_expense'))
+            .backgroundColor($r('app.color.color_card_overlay'))
+            .borderRadius(19)
+            .border({ width: 1, color: $r('app.color.color_expense') })
+            .onClick(() => {
+              this.resetCats()
+            })
         }
         .width('100%')
-        .padding({ left: 8, right: 8 })
-        .onAreaChange((_o: Area, n: Area) => {
-          // 运行时算出每格宽度
-          const w = n.width as number
-          if (w > 0) this.cellW = (w - 16) / COLS
-        })
 
-        // 浮层：纯图标+文字，无背景无边框
-        if (this.dragIdx >= 0 && this.dragIdx < this.currentList().length) {
-          Column() {
-            this.CatIcon(this.currentList()[this.dragIdx], true)
-          }
-          .width('25%')
-          .height(CELL_H)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .scale({ x: 1.15, y: 1.15 })
-          .translate({ x: this.getFloatX(), y: this.getFloatY() })
-          .hitTestBehavior(HitTestMode.None)
-        }
+        Button('完成')
+          .width('100%')
+          .height(42)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_white'))
+          .backgroundColor($r('app.color.color_primary'))
+          .borderRadius(12)
+          .onClick(() => {
+            this.doClose()
+          })
       }
-      .layoutWeight(1)
-
-      // 底部
-      Column({ space: 10 }) {
-        Row({ space: 10 }) {
-          Button('+ 添加').layoutWeight(1).height(44).fontSize(14)
-            .fontColor($r('app.color.color_primary'))
-            .backgroundColor($r('app.color.color_surface')).borderRadius(22)
-            .border({ width: 1, color: $r('app.color.color_primary') })
-            .onClick(() => { this.addCat() })
-          Button('重置').layoutWeight(1).height(44).fontSize(14)
-            .fontColor($r('app.color.color_expense'))
-            .backgroundColor($r('app.color.color_surface')).borderRadius(22)
-            .border({ width: 1, color: $r('app.color.color_expense') })
-            .onClick(() => { this.resetCats() })
-        }.width('100%')
-
-        Button('完成').width('100%').height(48).fontSize(16).fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.color_surface')).backgroundColor($r('app.color.color_duck'))
-          .borderRadius(24).onClick(() => { this.doClose() })
-      }
-      .width('100%').padding({ left: 20, right: 20, top: 8, bottom: 20 })
+      .width('100%')
+      .padding({ left: 24, right: 24, top: 0, bottom: 16 })
     }
-    .width('100%').height('100%').backgroundColor($r('app.color.color_surface'))
+      .width('100%')
+      .height('100%')
+      .backgroundColor(Color.Transparent)
+    }
+    .width('100%').height('100%')
   }
 }

@@ -1,4 +1,4 @@
-import { CategoryRecord } from '../model/Category'
+﻿import { CategoryRecord, getUnifiedCategoryColor } from '../model/Category'
 
 @Component
 export struct CategoryGrid {
@@ -19,10 +19,11 @@ export struct CategoryGrid {
             Column() {
               Image($rawfile(item.icon + '.svg'))
                 .width(22).height(22)
-                .fillColor(this.selected === item.name ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
+                .fillColor(this.selected === item.name ? $r('app.color.color_surface') : getUnifiedCategoryColor(item.name))
             }
             .width(44).height(44).borderRadius(22)
-            .backgroundColor(this.selected === item.name ? item.color : $r('app.color.color_bg'))
+            .backgroundColor(this.selected === item.name ? getUnifiedCategoryColor(item.name) : '#F6F9FF')
+            .border({ width: 1, color: this.selected === item.name ? getUnifiedCategoryColor(item.name) : '#E2E8F0' })
             .alignItems(HorizontalAlign.Center)
             .justifyContent(FlexAlign.Center)
             .animation({ duration: 200, curve: Curve.EaseOut })
@@ -46,3 +47,4 @@ export struct CategoryGrid {
     .padding({ left: 8, right: 8 })
   }
 }
+

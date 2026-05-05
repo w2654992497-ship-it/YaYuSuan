@@ -1,4 +1,4 @@
-import { Bill } from '../model/Bill'
+﻿import { Bill } from '../model/Bill'
 import { getCategoryColor, getCategoryInfo } from '../model/Category'
 import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
@@ -77,10 +77,11 @@ export struct BillItem {
       .backgroundColor($r('app.color.color_surface'))
       .borderRadius(16)
       .margin({ top: 4, bottom: 4 })
-      .border({ width: 1, color: 'rgba(0,0,0,0.05)', radius: 16 })
-      .shadow({ radius: 0, color: 'rgba(43,45,66,0.1)', offsetX: 4, offsetY: 4 }) // Neo-brutalism flat offset shadow
+      .border({ width: 1, color: 'rgba(221,236,239,0.8)', radius: 16 })
+      .shadow({ radius: 12, color: 'rgba(37,99,235,0.08)', offsetX: 0, offsetY: 4 })
     }
     .swipeAction({ end: this.DeleteButton() })
     .margin({ left: 16, right: 16 })
   }
 }
+
