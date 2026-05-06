@@ -35,6 +35,7 @@ interface CategoryOption {
 @Component
 export struct BillSearchPage {
   onClose: () => void = () => {}
+  @Consume('appNavStack') navStack: NavPathStack
   @StorageProp('statusBarHeight') sbHeight: number = 0
   @State keyword: string = ''
   @State filter: SearchFilterOptions = createDefaultSearchFilter()
@@ -272,26 +273,27 @@ export struct BillSearchPage {
       Row() {
         Row() {
           Image($rawfile('icon_chevron_left.svg'))
-            .width(20)
-            .height(20)
+            .width(22)
+            .height(22)
             .fillColor($r('app.color.color_text_primary'))
         }
-        .width(32)
-        .height(32)
-        .borderRadius(16)
+        .width(38)
+        .height(38)
+        .borderRadius(19)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor($r('app.color.color_bg'))
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .shadow({ radius: 8, color: $r('app.color.color_shadow_blue_08'), offsetX: 0, offsetY: 4 })
         .onClick(() => { this.onClose() })
 
         Row() {
-          Image($rawfile('icon_list.svg'))
-            .width(16)
-            .height(16)
+          Image($rawfile('icon_search.svg'))
+            .width(18)
+            .height(18)
             .fillColor($r('app.color.color_text_secondary'))
             .margin({ right: 8 })
           TextInput({ text: this.keyword, placeholder: '搜索备注 / 分类 / 金额' })
             .layoutWeight(1)
-            .fontSize(14)
+            .fontSize(15)
             .backgroundColor(Color.Transparent)
             .border({ width: 0 })
             .borderRadius(0)
@@ -306,30 +308,35 @@ export struct BillSearchPage {
             })
         }
         .layoutWeight(1)
-        .height(36)
-        .padding({ left: 10, right: 10 })
-        .backgroundColor($r('app.color.color_bg'))
-        .borderRadius(18)
+        .height(42)
+        .padding({ left: 14, right: 12 })
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(21)
+        .border({ width: 1, color: $r('app.color.color_divider') })
+        .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_08'), offsetX: 0, offsetY: 4 })
         .margin({ left: 10, right: 10 })
 
         Text('清空')
-          .fontSize(13)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.color_primary'))
           .onClick(() => { this.clearKeyword() })
       }
       .width('100%')
-      .padding({ left: 16, right: 16, top: this.sbHeight + 10, bottom: 10 })
+      .height(this.sbHeight + 68)
+      .padding({ left: 18, right: 18, top: this.sbHeight + 12, bottom: 12 })
 
       Column({ space: 10 }) {
         Row() {
           Text('筛选条件')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.color_text_primary'))
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.color_text_deep'))
           Blank()
           if (this.hasAnyFilter()) {
             Text('重置')
-              .fontSize(12)
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.color_primary'))
               .onClick(() => { this.clearFilters() })
           }
@@ -338,25 +345,26 @@ export struct BillSearchPage {
 
         Column({ space: 8 }) {
           Text('分类')
-            .fontSize(11)
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.color_text_secondary'))
 
           Row() {
             Text(this.filter.category.length > 0 ? this.filter.category : '全部分类')
-              .fontSize(13)
+              .fontSize(15)
               .fontColor(this.filter.category.length > 0 ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
             Blank()
             Image($rawfile('icon_chevron_right.svg'))
-              .width(12)
-              .height(12)
+              .width(14)
+              .height(14)
               .fillColor($r('app.color.color_text_secondary'))
               .rotate({ angle: this.showCategoryMenu ? 90 : 0 })
           }
           .width('100%')
-          .height(36)
-          .padding({ left: 12, right: 10 })
-          .backgroundColor(this.filter.category.length > 0 ? 'rgba(255,209,102,0.18)' : $r('app.color.color_surface'))
-          .borderRadius(18)
+          .height(42)
+          .padding({ left: 14, right: 12 })
+          .backgroundColor(this.filter.category.length > 0 ? $r('app.color.color_selected_bg') : $r('app.color.color_surface'))
+          .borderRadius(21)
           .border({ width: 1, color: this.filter.category.length > 0 ? $r('app.color.color_primary') : $r('app.color.color_divider') })
           .onClick(() => { this.showCategoryMenu = !this.showCategoryMenu })
 
@@ -366,26 +374,26 @@ export struct BillSearchPage {
                 ForEach(this.categoryOptionsForMenu(), (item: CategoryOption) => {
                   Row() {
                     Text(item.label)
-                      .fontSize(13)
+                      .fontSize(14)
                       .fontColor(item.selected ? $r('app.color.color_primary') : $r('app.color.color_text_primary'))
                       .fontWeight(item.selected ? FontWeight.Medium : FontWeight.Normal)
                     Blank()
                     if (item.selected) {
                       Text('✓')
-                        .fontSize(13)
+                        .fontSize(14)
                         .fontColor($r('app.color.color_primary'))
                     }
                   }
                   .width('100%')
-                  .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-                  .backgroundColor(item.selected ? 'rgba(255,209,102,0.18)' : $r('app.color.color_surface'))
+                  .padding({ left: 14, right: 14, top: 12, bottom: 12 })
+                  .backgroundColor(item.selected ? $r('app.color.color_selected_bg') : $r('app.color.color_surface'))
                   .onClick(() => { this.setCategoryFilter(item.value) })
                 }, (item: CategoryOption) => item.value + item.label)
               }
             }
             .height(160)
             .backgroundColor($r('app.color.color_surface'))
-            .borderRadius(12)
+            .borderRadius(16)
             .border({ width: 1, color: $r('app.color.color_divider') })
             .scrollBar(BarState.Auto)
             .transition(
@@ -398,108 +406,128 @@ export struct BillSearchPage {
             )
           }
         }
-        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-        .backgroundColor($r('app.color.color_surface'))
-        .borderRadius(12)
+        .padding({ left: 14, right: 14, top: 12, bottom: 12 })
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(18)
         .border({ width: 1, color: $r('app.color.color_divider') })
+        .shadow({ radius: 12, color: $r('app.color.color_shadow_blue_08'), offsetX: 0, offsetY: 4 })
 
         Column({ space: 8 }) {
           Text('时间范围')
-            .fontSize(11)
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.color_text_secondary'))
 
           Row({ space: 8 }) {
             Text(this.filter.startDate.length > 0 ? this.filter.startDate : '开始日期')
               .layoutWeight(1)
-              .height(34)
+              .height(40)
               .textAlign(TextAlign.Center)
-              .fontSize(12)
+              .fontSize(14)
               .fontColor(this.filter.startDate.length > 0 ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
               .backgroundColor($r('app.color.color_surface'))
-              .borderRadius(17)
+              .borderRadius(20)
               .border({ width: 1, color: $r('app.color.color_divider') })
               .onClick(() => { this.pickDate(true) })
 
             Text(this.filter.endDate.length > 0 ? this.filter.endDate : '结束日期')
               .layoutWeight(1)
-              .height(34)
+              .height(40)
               .textAlign(TextAlign.Center)
-              .fontSize(12)
+              .fontSize(14)
               .fontColor(this.filter.endDate.length > 0 ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
               .backgroundColor($r('app.color.color_surface'))
-              .borderRadius(17)
+              .borderRadius(20)
               .border({ width: 1, color: $r('app.color.color_divider') })
               .onClick(() => { this.pickDate(false) })
           }
           .width('100%')
         }
-        .padding({ left: 12, right: 12, top: 10, bottom: 10 })
-        .backgroundColor($r('app.color.color_surface'))
-        .borderRadius(12)
+        .padding({ left: 14, right: 14, top: 12, bottom: 12 })
+        .backgroundColor($r('app.color.color_card_overlay'))
+        .borderRadius(18)
         .border({ width: 1, color: $r('app.color.color_divider') })
+        .shadow({ radius: 12, color: $r('app.color.color_shadow_blue_08'), offsetX: 0, offsetY: 4 })
       }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 4, bottom: 10 })
-      .backgroundColor('rgba(238,249,250,0.70)')
+      .width('calc(100% - 32vp)')
+      .padding({ left: 0, right: 0, top: 4, bottom: 10 })
+      .margin({ left: 16, right: 16 })
+      .backgroundColor(Color.Transparent)
 
       Row() {
         Text(`结果 ${this.resultCount} 条`)
-          .fontSize(13)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.color_text_secondary'))
         Blank()
         Text(`收入 ¥${AmountUtil.fen2Display(this.totalIncome)}`)
           .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.color_income'))
           .margin({ right: 8 })
         Text(`支出 ¥${AmountUtil.fen2Display(this.totalExpense)}`)
           .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.color_expense'))
           .margin({ right: 8 })
         Text(`净额 ¥${AmountUtil.fen2Display(this.totalIncome - this.totalExpense)}`)
           .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .fontColor((this.totalIncome - this.totalExpense) >= 0 ? $r('app.color.color_income') : $r('app.color.color_expense'))
       }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 10, bottom: 8 })
-      .backgroundColor($r('app.color.color_surface'))
+      .width('calc(100% - 32vp)')
+      .height(44)
+      .padding({ left: 14, right: 14 })
+      .backgroundColor($r('app.color.color_card_overlay'))
+      .borderRadius(18)
+      .border({ width: 1, color: $r('app.color.color_divider') })
+      .shadow({ radius: 12, color: $r('app.color.color_shadow_blue_08'), offsetX: 0, offsetY: 4 })
+      .margin({ left: 16, right: 16, top: 2, bottom: 8 })
 
       Row({ space: 6 }) {
-        Blank()
         Text('全部')
-          .width(50)
-          .height(26)
+          .layoutWeight(1)
+          .height(34)
           .textAlign(TextAlign.Center)
-          .fontSize(11)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .fontColor(this.selectedType === 'all' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
           .backgroundColor(this.selectedType === 'all' ? $r('app.color.color_accent') : $r('app.color.color_surface'))
-          .borderRadius(13)
+          .borderRadius(17)
           .border({ width: 1, color: this.selectedType === 'all' ? $r('app.color.color_accent') : $r('app.color.color_divider') })
           .onClick(() => { this.setTypeFilter('all') })
 
         Text('收入')
-          .width(50)
-          .height(26)
+          .layoutWeight(1)
+          .height(34)
           .textAlign(TextAlign.Center)
-          .fontSize(11)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .fontColor(this.selectedType === 'income' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
           .backgroundColor(this.selectedType === 'income' ? $r('app.color.color_primary') : $r('app.color.color_surface'))
-          .borderRadius(13)
+          .borderRadius(17)
           .border({ width: 1, color: this.selectedType === 'income' ? $r('app.color.color_primary') : $r('app.color.color_divider') })
           .onClick(() => { this.setTypeFilter('income') })
 
         Text('支出')
-          .width(50)
-          .height(26)
+          .layoutWeight(1)
+          .height(34)
           .textAlign(TextAlign.Center)
-          .fontSize(11)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .fontColor(this.selectedType === 'expense' ? $r('app.color.color_surface') : $r('app.color.color_text_secondary'))
           .backgroundColor(this.selectedType === 'expense' ? $r('app.color.color_accent') : $r('app.color.color_surface'))
-          .borderRadius(13)
+          .borderRadius(17)
           .border({ width: 1, color: this.selectedType === 'expense' ? $r('app.color.color_accent') : $r('app.color.color_divider') })
           .onClick(() => { this.setTypeFilter('expense') })
       }
-      .width('100%')
-      .padding({ left: 16, right: 16, top: 6, bottom: 6 })
+      .width('calc(100% - 32vp)')
+      .height(44)
+      .padding(5)
+      .backgroundColor($r('app.color.color_card_overlay'))
+      .borderRadius(22)
+      .border({ width: 1, color: $r('app.color.color_divider') })
+      .margin({ left: 16, right: 16, bottom: 8 })
 
       if (this.resultGroups.length === 0) {
         Column({ space: 10 }) {
@@ -539,17 +567,17 @@ export struct BillSearchPage {
             ListItem() {
               Row() {
                 Text(DateUtil.friendlyDate(group.date))
-                  .fontSize(12)
+                  .fontSize(13)
                   .fontColor($r('app.color.color_text_secondary'))
                   .fontWeight(FontWeight.Medium)
                 Blank()
                 Text(this.dayNetDisplay(group))
-                  .fontSize(12)
+                  .fontSize(13)
                   .fontColor(group.dayIncome >= group.dayExpense ? $r('app.color.color_income') : $r('app.color.color_expense'))
                   .fontWeight(FontWeight.Medium)
               }
               .width('100%')
-              .padding({ left: 20, right: 20, top: 14, bottom: 6 })
+              .padding({ left: 22, right: 22, top: 12, bottom: 4 })
             }
             .selectable(false)
 
@@ -558,7 +586,10 @@ export struct BillSearchPage {
                 bill: item.bill,
                 hitRemark: item.hitRemark,
                 hitCategory: item.hitCategory,
-                hitAmount: item.hitAmount
+                hitAmount: item.hitAmount,
+                onTap: () => {
+                  this.navStack.pushPathByName('billDetail', item.bill.id)
+                }
               })
             }, (item: SearchResultData) => `${item.bill.id}_${item.hitRemark}_${item.hitCategory}_${item.hitAmount}`)
           }, (group: SearchGroupData) => `${group.date}_${group.items.length}_${group.dayIncome}_${group.dayExpense}`)

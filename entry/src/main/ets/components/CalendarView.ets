@@ -143,16 +143,20 @@ export struct CalendarView {
       Column() {
         Row() {
           Text(bill.category)
-            .fontSize(14)
+            .fontSize(13)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.color_text_deep'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
             .margin({ right: 10 })
+            .layoutWeight(1)
           if (bill.remark.length > 0) {
             Text(bill.remark)
-              .fontSize(13)
+              .fontSize(12)
               .fontColor($r('app.color.color_text_secondary'))
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .layoutWeight(1)
           }
         }
         .width('100%')
@@ -166,9 +170,11 @@ export struct CalendarView {
       .alignItems(HorizontalAlign.Start)
 
       Text(`${bill.type === 'income' ? '+' : '-'}¥${AmountUtil.fen2Display(bill.amount)}`)
-        .fontSize(15)
+        .fontSize(14)
         .fontWeight(FontWeight.Medium)
         .fontColor(bill.type === 'income' ? $r('app.color.color_income') : $r('app.color.color_expense'))
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
         .margin({ right: 8 })
 
       Image($rawfile('icon_chevron_right.svg'))
@@ -256,33 +262,50 @@ export struct CalendarView {
         .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 4 })
         .margin({ left: 16, right: 16, top: 0, bottom: 8 })
 
-        Column() {
-          Row() {
+      Column() {
+          Column() {
             Text(this.selectedDateTitle())
-              .fontSize(15)
+              .fontSize(14)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.color_text_deep'))
-            Blank()
-            if (this.selectedExpense() > 0) {
-              Text(`支出 ¥${AmountUtil.fen2Display(this.selectedExpense())}`)
-                .fontSize(14)
-                .fontColor($r('app.color.color_expense'))
-                .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                .backgroundColor('#FFFFECEC')
-                .borderRadius(14)
-            }
-            if (this.selectedIncome() > 0) {
-              Text(`收入 ¥${AmountUtil.fen2Display(this.selectedIncome())}`)
-                .fontSize(14)
-                .fontColor($r('app.color.color_income'))
-                .padding({ left: 8, right: 8, top: 3, bottom: 3 })
-                .backgroundColor($r('app.color.color_selected_bg'))
-                .borderRadius(14)
-                .margin({ left: 6 })
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width('100%')
+
+            if (this.selectedExpense() > 0 || this.selectedIncome() > 0) {
+              Row({ space: 6 }) {
+                if (this.selectedExpense() > 0) {
+                  Text(`支出 ¥${AmountUtil.fen2Display(this.selectedExpense())}`)
+                    .fontSize(12)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.color_expense'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor('#FFFFECEC')
+                    .borderRadius(13)
+                    .layoutWeight(1)
+                }
+                if (this.selectedIncome() > 0) {
+                  Text(`收入 ¥${AmountUtil.fen2Display(this.selectedIncome())}`)
+                    .fontSize(12)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.color_income'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+                    .backgroundColor($r('app.color.color_selected_bg'))
+                    .borderRadius(13)
+                    .layoutWeight(1)
+                }
+              }
+              .width('100%')
+              .margin({ top: 6 })
             }
           }
           .width('100%')
           .padding({ left: 12, right: 12, top: 10 })
+          .alignItems(HorizontalAlign.Start)
 
           Row({ space: 6 }) {
             Row() {

@@ -24,6 +24,8 @@ export struct AccountFormPage {
   @State originalDefault: number = 0
   @State balanceText: string = '0.00'
   @State showTypeSheet: boolean = false
+  @State showDebtDialog: boolean = false
+  @State pendingBalance: number = 0
   @State loading: boolean = false
 
   aboutToAppear(): void {
@@ -218,6 +220,31 @@ export struct AccountFormPage {
     this.draft = this.copyWithText('tailNumber', value)
   }
 
+  private filterBalanceText(value: string): string {
+    let source = value
+    let negative = false
+    if (source.length > 0 && source[0] === '-') {
+      negative = true
+      source = source.substring(1)
+    }
+    let filtered = source.replace(/[^0-9.]/g, '')
+    const dotIndex = filtered.indexOf('.')
+    if (dotIndex !== -1) {
+      const afterDot = filtered.substring(dotIndex + 1).replace(/\./g, '')
+      filtered = filtered.substring(0, dotIndex + 1) + afterDot.substring(0, 2)
+    }
+    if (filtered.length > 1 && filtered[0] === '0' && filtered[1] !== '.') {
+      filtered = filtered.substring(1)
+    }
+    if (negative && filtered.length > 0) {
+      return '-' + filtered
+    }
+    if (negative && value === '-') {
+      return '-'
+    }
+    return filtered
+  }
+
   private copyWithText(fieldName: string, value: string): PaymentAccount {
     const next = this.copyDraft()
     if (fieldName === 'name') {
@@ -290,8 +317,18 @@ export struct AccountFormPage {
       return
     }
     const balance = AmountUtil.yuan2Fen(this.balanceText)
+    if (this.mode === 'edit' && this.draft.manualBalance < 0 && balance >= 0) {
+      this.pendingBalance = balance
+      this.showDebtDialog = true
+      return
+    }
+    await this.saveWithBalance(balance)
+  }
+
+  private async saveWithBalance(balance: number): Promise<void> {
     this.loading = true
     try {
+      const name = this.draft.name.trim()
       const now = Date.now()
       const next = this.copyDraft()
       next.name = name
@@ -316,6 +353,20 @@ export struct AccountFormPage {
     } finally {
       this.loading = false
     }
+  }
+
+  private debtAmountText(): string {
+    return '¥' + AmountUtil.rawFen2Display(0 - this.draft.manualBalance)
+  }
+
+  private async saveDeductDebt(): Promise<void> {
+    this.showDebtDialog = false
+    await this.saveWithBalance(this.pendingBalance + this.draft.manualBalance)
+  }
+
+  private async saveWithoutDeductDebt(): Promise<void> {
+    this.showDebtDialog = false
+    await this.saveWithBalance(this.pendingBalance)
   }
 
   @Builder
@@ -455,7 +506,6 @@ export struct AccountFormPage {
           .fontColor($r('app.color.color_text_deep'))
           .width(92)
         TextInput({ placeholder: '0.00', text: this.balanceText })
-          .type(InputType.NUMBER_DECIMAL)
           .fontSize(15)
           .fontColor($r('app.color.color_text_deep'))
           .placeholderColor($r('app.color.color_text_muted'))
@@ -463,7 +513,7 @@ export struct AccountFormPage {
           .textAlign(TextAlign.End)
           .layoutWeight(1)
           .onChange((next: string) => {
-            this.balanceText = next
+            this.balanceText = this.filterBalanceText(next)
           })
       }
       .width('100%')
@@ -553,6 +603,68 @@ export struct AccountFormPage {
     .borderRadius(16)
     .border({ width: 1, color: $r('app.color.color_divider') })
     .margin({ left: 16, right: 16, bottom: 12 })
+  }
+
+  @Builder
+  DebtDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Row()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#66000000')
+        .onClick(() => {
+          this.showDebtDialog = false
+        })
+
+      Column() {
+        Text('账户欠款提醒')
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_deep'))
+          .width('100%')
+          .textAlign(TextAlign.Start)
+
+        Text('当前账户有欠款 ' + this.debtAmountText() + '，是否从本次设置的余额中自动扣除这笔欠款？')
+          .fontSize(14)
+          .fontColor($r('app.color.color_text_secondary'))
+          .lineHeight(22)
+          .width('100%')
+          .margin({ top: 12 })
+
+        Row({ space: 10 }) {
+          Button('不扣除')
+            .height(44)
+            .layoutWeight(1)
+            .fontSize(15)
+            .fontColor($r('app.color.color_primary'))
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: $r('app.color.color_divider') })
+            .borderRadius(14)
+            .onClick(() => {
+              this.saveWithoutDeductDebt()
+            })
+          Button('扣除欠款')
+            .height(44)
+            .layoutWeight(1)
+            .fontSize(15)
+            .fontColor($r('app.color.color_white'))
+            .backgroundColor($r('app.color.color_primary'))
+            .borderRadius(14)
+            .onClick(() => {
+              this.saveDeductDebt()
+            })
+        }
+        .width('100%')
+        .margin({ top: 20 })
+      }
+      .width('calc(100% - 56vp)')
+      .padding({ left: 18, right: 18, top: 20, bottom: 18 })
+      .backgroundColor($r('app.color.color_surface'))
+      .borderRadius(20)
+      .shadow({ radius: 18, color: $r('app.color.color_shadow_blue_10'), offsetY: 8 })
+    }
+    .width('100%')
+    .height('100%')
   }
 
   @Builder
@@ -670,6 +782,10 @@ export struct AccountFormPage {
 
       if (this.showTypeSheet) {
         this.TypeSheet()
+      }
+
+      if (this.showDebtDialog) {
+        this.DebtDialog()
       }
     }
     .width('100%')

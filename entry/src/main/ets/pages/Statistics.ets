@@ -9,6 +9,7 @@ import { AmountUtil } from '../utils/AmountUtil'
 import { DateUtil } from '../utils/DateUtil'
 import { LogUtils } from '../utils/LogUtils'
 import { BudgetService } from '../services/BudgetService'
+import { BudgetOverview, createEmptyBudgetOverview } from '../model/BudgetRule'
 
 interface TrendBarData {
   label: string
@@ -20,6 +21,153 @@ interface TrendBarData {
 interface StatDateRange {
   startDate: string
   endDate: string
+}
+
+@Component
+struct StatisticsBudgetMiniCard {
+  @Prop title: string
+  @Prop iconColor: ResourceColor
+  @Prop totalFen: number = 0
+  @Prop usedFen: number = 0
+  @Prop remainFen: number = 0
+  @Prop percent: number = 0
+  @Prop activeRuleCount: number = 0
+  @Prop categoryBudgetFen: number = 0
+
+  private hasBudget(): boolean {
+    return this.totalFen > 0 || this.categoryBudgetFen > 0 || this.activeRuleCount > 0
+  }
+
+  private displayTotalFen(): number {
+    if (this.totalFen > 0) {
+      return this.totalFen
+    }
+    return this.categoryBudgetFen
+  }
+
+  private amountText(value: number): string {
+    if (value <= 0) {
+      return '--'
+    }
+    return '¥' + AmountUtil.fen2Display(value)
+  }
+
+  private titleAmountText(): string {
+    if (!this.hasBudget()) {
+      return '未设置'
+    }
+    return this.amountText(this.displayTotalFen())
+  }
+
+  private remainText(): string {
+    if (!this.hasBudget()) {
+      return '--'
+    }
+    return this.amountText(this.remainFen)
+  }
+
+  private progressWidth(): string {
+    if (!this.hasBudget() || this.percent <= 0) {
+      return '0%'
+    }
+    const percent = Math.max(4, Math.min(100, this.percent))
+    return percent.toString() + '%'
+  }
+
+  build() {
+    Column() {
+      Row() {
+        Row() {
+          Image($rawfile('icon_calendar.svg'))
+            .width(18)
+            .height(18)
+            .fillColor($r('app.color.color_white'))
+        }
+        .width(26)
+        .height(26)
+        .borderRadius(13)
+        .backgroundColor(this.iconColor)
+        .justifyContent(FlexAlign.Center)
+        .margin({ right: 5 })
+
+        Text(this.title)
+          .fontSize(11)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_deep'))
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Text(this.titleAmountText())
+        .fontSize(this.hasBudget() ? 14 : 15)
+        .fontWeight(FontWeight.Bolder)
+        .fontColor(this.hasBudget() ? $r('app.color.color_text_deep') : $r('app.color.color_text_secondary'))
+        .width('100%')
+        .margin({ top: 12 })
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Row() {
+        Text('已用')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+        Blank()
+        Text(this.amountText(this.usedFen))
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .margin({ top: 10 })
+
+      Row() {
+        Text('剩余')
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+        Blank()
+        Text(this.remainText())
+          .fontSize(11)
+          .fontColor(this.hasBudget() ? this.iconColor : $r('app.color.color_text_secondary'))
+          .fontWeight(this.hasBudget() ? FontWeight.Bold : FontWeight.Regular)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .margin({ top: 6 })
+
+      Stack({ alignContent: Alignment.Start }) {
+        Row()
+          .width('100%')
+          .height(8)
+          .borderRadius(4)
+          .backgroundColor('#EAF1F2')
+        Row()
+          .width(this.progressWidth())
+          .height(8)
+          .borderRadius(4)
+          .backgroundColor(this.iconColor)
+      }
+      .width('100%')
+      .margin({ top: 10 })
+
+      Text(this.hasBudget() ? this.percent.toString() + '%' : '--')
+        .fontSize(11)
+        .fontColor($r('app.color.color_text_secondary'))
+        .width('100%')
+        .textAlign(TextAlign.End)
+        .margin({ top: 4 })
+    }
+    .layoutWeight(1)
+    .height(142)
+    .padding({ left: 10, right: 10, top: 12, bottom: 10 })
+    .backgroundColor($r('app.color.color_surface'))
+    .borderRadius(16)
+    .border({ width: 1, color: $r('app.color.color_divider') })
+  }
 }
 
 @Component
@@ -488,6 +636,8 @@ struct ExpenseTrendCanvas {
   @Prop statMode: string = 'month'
   @Watch('redraw')
   @Prop selectedLabel: string = ''
+  @Watch('redraw')
+  @Prop emptyText: string = '暂无支出数据'
   onGestureActive: (active: boolean) => void = (active: boolean): void => {}
   onSelect: (label: string, amount: number) => void = (label: string, amount: number): void => {}
 
@@ -707,7 +857,7 @@ struct ExpenseTrendCanvas {
       ctx.font = this.font(21, 'sans-serif')
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText('暂无支出数据', width / 2, height / 2)
+      ctx.fillText(this.emptyText, width / 2, height / 2)
       return
     }
 
@@ -810,6 +960,7 @@ export struct StatisticsPage {
   @Watch('onTabChanged')
   @Consume activeTabIndex: number
   @State statMode: string = 'month'
+  @State metricMode: string = 'expense'
   @State currentMonth: string = DateUtil.currentMonth()
   @State currentYear: string = new Date().getFullYear().toString()
   @State incomeTotal: number = 0
@@ -819,6 +970,9 @@ export struct StatisticsPage {
   @State budgetTotal: number = 0
   @State budgetUsed: number = 0
   @State budgetPercent: number = 0
+  @State dayBudgetOverview: BudgetOverview = createEmptyBudgetOverview()
+  @State monthBudgetOverview: BudgetOverview = createEmptyBudgetOverview()
+  @State yearBudgetOverview: BudgetOverview = createEmptyBudgetOverview()
   @State categoryStats: CategoryStat[] = []
   @State categoryDisplayStats: CategoryStat[] = []
   @State trendBars: TrendBarData[] = []
@@ -890,9 +1044,15 @@ export struct StatisticsPage {
       this.lastIncomeTotal = this.sumByType(lastBills, 'income')
       this.lastExpenseTotal = this.sumByType(lastBills, 'expense')
       this.categoryStats = this.buildCategoryStats(bills)
-      this.categoryDisplayStats = this.buildCategoryDisplayStats(this.categoryStats, this.expenseTotal)
+      this.categoryDisplayStats = this.buildCategoryDisplayStats(this.categoryStats, this.metricTotal())
       this.summaryRenderVersion += 1
-      await this.loadBudgetOverview(loadToken)
+      if (this.isIncomeMode()) {
+        this.budgetTotal = 0
+        this.budgetUsed = 0
+        this.budgetPercent = 0
+      } else {
+        await this.loadBudgetOverview(loadToken)
+      }
       await this.loadTrendData(loadToken)
       if (loadToken !== this.statisticsLoadToken) {
         return
@@ -913,12 +1073,16 @@ export struct StatisticsPage {
   }
 
   private async loadBudgetOverview(loadToken: number): Promise<void> {
-    const overview = this.statMode === 'year' ?
-      await BudgetService.getInstance().buildYearOverview(this.currentYear) :
-      await BudgetService.getInstance().buildMonthOverview(this.currentMonth)
+    const dayOverview = await BudgetService.getInstance().buildOverview('day')
+    const monthOverview = await BudgetService.getInstance().buildMonthOverview(this.currentMonth)
+    const yearOverview = await BudgetService.getInstance().buildYearOverview(this.currentYear)
     if (loadToken !== this.statisticsLoadToken) {
       return
     }
+    this.dayBudgetOverview = dayOverview
+    this.monthBudgetOverview = monthOverview
+    this.yearBudgetOverview = yearOverview
+    const overview = this.statMode === 'year' ? yearOverview : monthOverview
     this.budgetTotal = overview.totalFen
     this.budgetUsed = overview.usedFen
     this.budgetPercent = overview.percent
@@ -929,7 +1093,7 @@ export struct StatisticsPage {
     const range = this.currentTrendRange()
     const filter: SearchFilterOptions = {
       keyword: '',
-      type: 'expense',
+      type: this.metricFilterType(),
       category: '',
       startDate: range.startDate,
       endDate: range.endDate
@@ -1028,9 +1192,9 @@ export struct StatisticsPage {
 
   private trendCardTitle(): string {
     if (this.statMode === 'year') {
-      return '年度支出趋势'
+      return this.isIncomeMode() ? '年度收入趋势' : '年度支出趋势'
     }
-    return '支出趋势'
+    return this.isIncomeMode() ? '收入趋势' : '支出趋势'
   }
 
   private trendUnitTitle(): string {
@@ -1041,6 +1205,22 @@ export struct StatisticsPage {
       return '本月'
     }
     return '近7天'
+  }
+
+  private metricModeTitle(): string {
+    return this.isIncomeMode() ? '收入' : '支出'
+  }
+
+  private categoryCardTitle(): string {
+    return this.metricModeTitle() + '分类'
+  }
+
+  private rankingCardTitle(): string {
+    return this.metricModeTitle() + '排行榜'
+  }
+
+  private trendEmptyText(): string {
+    return '暂无' + this.metricModeTitle() + '数据'
   }
 
   private sumByType(bills: Bill[], type: 'income' | 'expense'): number {
@@ -1060,6 +1240,29 @@ export struct StatisticsPage {
     return bill.type !== 'income'
   }
 
+  private isIncomeMode(): boolean {
+    return this.metricMode === 'income'
+  }
+
+  private metricFilterType(): 'income' | 'expense' {
+    return this.isIncomeMode() ? 'income' : 'expense'
+  }
+
+  private isTrendBill(bill: Bill): boolean {
+    if (this.isIncomeMode()) {
+      return bill.type === 'income'
+    }
+    return this.isExpenseBill(bill)
+  }
+
+  private metricTotal(): number {
+    return this.isIncomeMode() ? this.incomeTotal : this.expenseTotal
+  }
+
+  private lastMetricTotal(): number {
+    return this.isIncomeMode() ? this.lastIncomeTotal : this.lastExpenseTotal
+  }
+
   private buildCategoryStats(bills: Bill[]): CategoryStat[] {
     const names: string[] = []
     const totals: number[] = []
@@ -1067,7 +1270,7 @@ export struct StatisticsPage {
 
     for (let i = 0; i < bills.length; i++) {
       const bill = bills[i]
-      if (!this.isExpenseBill(bill)) {
+      if (!this.isTrendBill(bill)) {
         continue
       }
       grandTotal += bill.amount
@@ -1107,7 +1310,15 @@ export struct StatisticsPage {
     const result: CategoryStat[] = []
     if (stats.length === 0) {
       if (total > 0) {
-        result.push({ category: '餐饮', total: total, percent: 100, color: getCategoryColor('餐饮') })
+        const category = this.isIncomeMode() ? '工资' : '餐饮'
+        result.push({ category: category, total: total, percent: 100, color: getCategoryColor(category) })
+        return result
+      }
+      if (this.isIncomeMode()) {
+        result.push({ category: '工资', total: 0, percent: 0, color: getCategoryColor('工资') })
+        result.push({ category: '兼职', total: 0, percent: 0, color: getCategoryColor('兼职') })
+        result.push({ category: '理财', total: 0, percent: 0, color: getCategoryColor('理财') })
+        result.push({ category: '其他', total: 0, percent: 0, color: getCategoryColor('其他') })
         return result
       }
       result.push({ category: '餐饮', total: 0, percent: 0, color: getCategoryColor('餐饮') })
@@ -1139,7 +1350,7 @@ export struct StatisticsPage {
       let amount = 0
       for (let i = 0; i < bills.length; i++) {
         const bill = bills[i]
-        if (this.isExpenseBill(bill) && bill.date === dateText) {
+        if (this.isTrendBill(bill) && bill.date === dateText) {
           amount += bill.amount
         }
       }
@@ -1167,7 +1378,7 @@ export struct StatisticsPage {
     let amount = 0
     for (let i = 0; i < bills.length; i++) {
       const bill = bills[i]
-      if (this.isExpenseBill(bill) && bill.date === dateText) {
+      if (this.isTrendBill(bill) && bill.date === dateText) {
         amount += bill.amount
       }
     }
@@ -1183,7 +1394,7 @@ export struct StatisticsPage {
       let amount = 0
       for (let i = 0; i < bills.length; i++) {
         const bill = bills[i]
-        if (this.isExpenseBill(bill) && bill.date.length >= 7 && bill.date.substring(0, 7) === monthText) {
+        if (this.isTrendBill(bill) && bill.date.length >= 7 && bill.date.substring(0, 7) === monthText) {
           amount += bill.amount
         }
       }
@@ -1224,7 +1435,7 @@ export struct StatisticsPage {
       let amount = 0
       for (let j = 0; j < bills.length; j++) {
         const bill = bills[j]
-        if (this.isExpenseBill(bill) && bill.date === dateText) {
+        if (this.isTrendBill(bill) && bill.date === dateText) {
           amount += bill.amount
         }
       }
@@ -1276,7 +1487,7 @@ export struct StatisticsPage {
       let amount = 0
       for (let j = 0; j < bills.length; j++) {
         const bill = bills[j]
-        if (this.isExpenseBill(bill) && bill.date >= startText && bill.date <= endText) {
+        if (this.isTrendBill(bill) && bill.date >= startText && bill.date <= endText) {
           amount += bill.amount
         }
       }
@@ -1313,7 +1524,7 @@ export struct StatisticsPage {
       let amount = 0
       for (let j = 0; j < bills.length; j++) {
         const bill = bills[j]
-        if (this.isExpenseBill(bill) && bill.date.length >= 7 && bill.date.substring(0, 7) === monthText) {
+        if (this.isTrendBill(bill) && bill.date.length >= 7 && bill.date.substring(0, 7) === monthText) {
           amount += bill.amount
         }
       }
@@ -1477,6 +1688,17 @@ export struct StatisticsPage {
     this.loadData()
   }
 
+  private switchMetricMode(mode: string): void {
+    if (this.metricMode === mode) {
+      return
+    }
+    this.metricMode = mode
+    this.showAllCategories = false
+    this.showAllRanking = false
+    this.trendSelectionVisible = false
+    this.loadData()
+  }
+
   private openFilterSheet(): void {
     this.pendingStatMode = this.statMode
     this.pendingYear = this.statMode === 'year' ? this.currentYear : this.currentMonth.substring(0, 4)
@@ -1582,6 +1804,16 @@ export struct StatisticsPage {
     return $r('app.color.color_text_secondary')
   }
 
+  private compareColorByDirection(current: number, last: number, increaseGood: boolean): ResourceColor {
+    if (current === last) {
+      return $r('app.color.color_text_secondary')
+    }
+    if (current > last) {
+      return increaseGood ? $r('app.color.color_primary') : $r('app.color.color_expense')
+    }
+    return increaseGood ? $r('app.color.color_expense') : $r('app.color.color_primary')
+  }
+
   private totalCategoryAmount(): number {
     let total = 0
     for (let i = 0; i < this.categoryStats.length; i++) {
@@ -1591,6 +1823,18 @@ export struct StatisticsPage {
   }
 
   private defaultCategoryAt(index: number): CategoryStat {
+    if (this.isIncomeMode()) {
+      if (index === 0) {
+        return { category: '工资', total: 0, percent: 0, color: getCategoryColor('工资') }
+      }
+      if (index === 1) {
+        return { category: '兼职', total: 0, percent: 0, color: getCategoryColor('兼职') }
+      }
+      if (index === 2) {
+        return { category: '理财', total: 0, percent: 0, color: getCategoryColor('理财') }
+      }
+      return { category: '其他', total: 0, percent: 0, color: getCategoryColor('其他') }
+    }
     if (index === 0) {
       return { category: '餐饮', total: 0, percent: 0, color: '#FF9F1C' }
     }
@@ -1607,8 +1851,9 @@ export struct StatisticsPage {
     if (index < this.categoryStats.length) {
       return this.categoryStats[index]
     }
-    if (this.categoryStats.length === 0 && this.expenseTotal > 0 && index === 0) {
-      return { category: '餐饮', total: this.expenseTotal, percent: 100, color: '#FF9F1C' }
+    if (this.categoryStats.length === 0 && this.metricTotal() > 0 && index === 0) {
+      const category = this.isIncomeMode() ? '工资' : '餐饮'
+      return { category: category, total: this.metricTotal(), percent: 100, color: getCategoryColor(category) }
     }
     return this.defaultCategoryAt(index)
   }
@@ -1696,18 +1941,18 @@ export struct StatisticsPage {
   }
 
   private rankingWidth(stat: CategoryStat): string {
-    if (this.expenseTotal <= 0 || stat.total <= 0) {
+    if (this.metricTotal() <= 0 || stat.total <= 0) {
       return '0%'
     }
-    const percent = Math.floor(stat.total / this.expenseTotal * 100)
+    const percent = Math.floor(stat.total / this.metricTotal() * 100)
     return `${Math.max(4, Math.min(100, percent))}%`
   }
 
   private rankingPercent(stat: CategoryStat): number {
-    if (this.expenseTotal <= 0 || stat.total <= 0) {
+    if (this.metricTotal() <= 0 || stat.total <= 0) {
       return 0
     }
-    return Math.round(stat.total / this.expenseTotal * 100)
+    return Math.round(stat.total / this.metricTotal() * 100)
   }
 
   private budgetProgressText(): string {
@@ -1920,6 +2165,38 @@ export struct StatisticsPage {
   }
 
   @Builder
+  MetricModePill(label: string, mode: string) {
+    Text(label)
+      .fontSize(14)
+      .fontWeight(FontWeight.Bold)
+      .fontColor(this.metricMode === mode ? $r('app.color.color_white') : $r('app.color.color_text_secondary'))
+      .height(34)
+      .layoutWeight(1)
+      .textAlign(TextAlign.Center)
+      .borderRadius(17)
+      .backgroundColor(this.metricMode === mode ? $r('app.color.color_primary') : Color.Transparent)
+      .onClick(() => {
+        this.switchMetricMode(mode)
+      })
+  }
+
+  @Builder
+  MetricModeSwitch() {
+    Row({ space: 4 }) {
+      this.MetricModePill('支出', 'expense')
+      this.MetricModePill('收入', 'income')
+    }
+    .width('calc(100% - 36vp)')
+    .height(42)
+    .padding(4)
+    .borderRadius(21)
+    .backgroundColor($r('app.color.color_card_overlay'))
+    .border({ width: 1, color: $r('app.color.color_divider') })
+    .shadow({ radius: 12, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 5 })
+    .margin({ left: 18, right: 18, top: 6, bottom: 8 })
+  }
+
+  @Builder
   SummaryMetricIcon(icon: string, tintColor: ResourceColor, bgColor: ResourceColor) {
     Row() {
       Image($rawfile(icon))
@@ -2122,7 +2399,7 @@ export struct StatisticsPage {
     Row() {
       Column() {
         Row({ space: 4 }) {
-          Text(this.summaryExpenseTitle())
+          Text(this.isIncomeMode() ? this.summaryIncomeTitle() : this.summaryExpenseTitle())
             .fontSize(11)
             .fontColor($r('app.color.color_text_secondary'))
             .maxLines(1)
@@ -2134,22 +2411,22 @@ export struct StatisticsPage {
         }
         .alignItems(VerticalAlign.Center)
 
-        Text(this.compactMoneyText(this.expenseTotal))
-          .fontSize(this.summaryAmountFontSize(this.compactMoneyText(this.expenseTotal)))
+        Text(this.compactMoneyText(this.metricTotal()))
+          .fontSize(this.summaryAmountFontSize(this.compactMoneyText(this.metricTotal())))
           .fontWeight(FontWeight.Bolder)
-          .fontColor($r('app.color.color_text_deep'))
+          .fontColor(this.isIncomeMode() ? $r('app.color.color_primary') : $r('app.color.color_text_deep'))
           .margin({ top: 6 })
-          .maxLines(this.summaryAmountMaxLines(this.compactMoneyText(this.expenseTotal)))
+          .maxLines(this.summaryAmountMaxLines(this.compactMoneyText(this.metricTotal())))
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         Row()
           .width(24)
           .height(4)
           .borderRadius(2)
-          .backgroundColor($r('app.color.color_text_deep'))
+          .backgroundColor(this.isIncomeMode() ? $r('app.color.color_primary') : $r('app.color.color_text_deep'))
           .margin({ top: 7 })
-        Text(this.comparePeriodText() + ' ' + this.compactCompareText(this.expenseTotal, this.lastExpenseTotal))
+        Text(this.comparePeriodText() + ' ' + this.compactCompareText(this.metricTotal(), this.lastMetricTotal()))
           .fontSize(10)
-          .fontColor(this.compareColor(this.expenseTotal, this.lastExpenseTotal))
+          .fontColor(this.compareColorByDirection(this.metricTotal(), this.lastMetricTotal(), this.isIncomeMode()))
           .margin({ top: 5 })
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -2160,27 +2437,27 @@ export struct StatisticsPage {
       .justifyContent(FlexAlign.Center)
       Divider().vertical(true).height(64).color($r('app.color.color_divider'))
       Column() {
-        Text(this.summaryIncomeTitle())
+        Text(this.isIncomeMode() ? this.summaryExpenseTitle() : this.summaryIncomeTitle())
           .fontSize(11)
           .fontColor($r('app.color.color_text_secondary'))
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.compactMoneyText(this.incomeTotal))
-          .fontSize(this.summaryAmountFontSize(this.compactMoneyText(this.incomeTotal)))
+        Text(this.compactMoneyText(this.isIncomeMode() ? this.expenseTotal : this.incomeTotal))
+          .fontSize(this.summaryAmountFontSize(this.compactMoneyText(this.isIncomeMode() ? this.expenseTotal : this.incomeTotal)))
           .fontWeight(FontWeight.Bolder)
-          .fontColor($r('app.color.color_primary'))
+          .fontColor(this.isIncomeMode() ? $r('app.color.color_expense') : $r('app.color.color_primary'))
           .margin({ top: 6 })
-          .maxLines(this.summaryAmountMaxLines(this.compactMoneyText(this.incomeTotal)))
+          .maxLines(this.summaryAmountMaxLines(this.compactMoneyText(this.isIncomeMode() ? this.expenseTotal : this.incomeTotal)))
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         Row()
           .width(24)
           .height(4)
           .borderRadius(2)
-          .backgroundColor($r('app.color.color_primary'))
+          .backgroundColor(this.isIncomeMode() ? $r('app.color.color_expense') : $r('app.color.color_primary'))
           .margin({ top: 7 })
-        Text(this.comparePeriodText() + ' ' + this.compactCompareText(this.incomeTotal, this.lastIncomeTotal))
+        Text(this.comparePeriodText() + ' ' + this.compactCompareText(this.isIncomeMode() ? this.expenseTotal : this.incomeTotal, this.isIncomeMode() ? this.lastExpenseTotal : this.lastIncomeTotal))
           .fontSize(10)
-          .fontColor(this.compareColor(this.incomeTotal, this.lastIncomeTotal))
+          .fontColor(this.compareColorByDirection(this.isIncomeMode() ? this.expenseTotal : this.incomeTotal, this.isIncomeMode() ? this.lastExpenseTotal : this.lastIncomeTotal, !this.isIncomeMode()))
           .margin({ top: 5 })
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -2220,49 +2497,78 @@ export struct StatisticsPage {
       .height('100%')
       .alignItems(HorizontalAlign.Center)
       .justifyContent(FlexAlign.Center)
-      Divider().vertical(true).height(64).color($r('app.color.color_divider'))
-      Column() {
-        Text(this.budgetTitleText())
-          .fontSize(11)
-          .fontColor($r('app.color.color_text_secondary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.compactBudgetAmountText())
-          .fontSize(this.summaryAmountFontSize(this.compactBudgetAmountText()))
-          .fontWeight(FontWeight.Bolder)
-          .fontColor($r('app.color.color_primary'))
-          .margin({ top: 6 })
-          .maxLines(this.summaryAmountMaxLines(this.compactBudgetAmountText()))
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.budgetUsedRateText())
-          .fontSize(10)
-          .fontColor($r('app.color.color_text_secondary'))
-          .margin({ top: 5 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Stack({ alignContent: Alignment.Start }) {
-          Row()
-            .width('100%')
-            .height(7)
-            .borderRadius(4)
-            .backgroundColor($r('app.color.color_track'))
-          Row()
-            .width(this.budgetProgressWidth())
-            .height(7)
-            .borderRadius(4)
-            .backgroundColor($r('app.color.color_primary'))
-        }
-        .width('100%')
-        .margin({ top: 7 })
-      }
-      .layoutWeight(1)
-      .height('100%')
-      .alignItems(HorizontalAlign.Center)
-      .justifyContent(FlexAlign.Center)
     }
     .width('calc(100% - 36vp)')
-    .height(96)
-    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+    .height(118)
+    .padding({ left: 12, right: 12, top: 16, bottom: 16 })
+    .backgroundColor($r('app.color.color_card_overlay'))
+    .borderRadius(20)
+    .border({ width: 1, color: $r('app.color.color_divider') })
+    .shadow({ radius: 14, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 6 })
+    .margin({ left: 18, right: 18, top: 6, bottom: 8 })
+  }
+
+  @Builder
+  BudgetOverviewCard() {
+    Column() {
+      Row() {
+        Row()
+          .width(4)
+          .height(20)
+          .borderRadius(2)
+          .backgroundColor($r('app.color.color_primary'))
+          .margin({ right: 8 })
+        Text('预算概览')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_deep'))
+        Blank()
+        Text(this.budgetProgressText())
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: 12 })
+
+      Row({ space: 10 }) {
+        StatisticsBudgetMiniCard({
+          title: '今日预算',
+          iconColor: $r('app.color.color_primary'),
+          totalFen: this.dayBudgetOverview.totalFen,
+          usedFen: this.dayBudgetOverview.usedFen,
+          remainFen: this.dayBudgetOverview.remainFen,
+          percent: this.dayBudgetOverview.percent,
+          activeRuleCount: this.dayBudgetOverview.activeRuleCount,
+          categoryBudgetFen: this.dayBudgetOverview.categoryBudgetFen
+        })
+        StatisticsBudgetMiniCard({
+          title: '本月预算',
+          iconColor: $r('app.color.color_accent_deep'),
+          totalFen: this.monthBudgetOverview.totalFen,
+          usedFen: this.monthBudgetOverview.usedFen,
+          remainFen: this.monthBudgetOverview.remainFen,
+          percent: this.monthBudgetOverview.percent,
+          activeRuleCount: this.monthBudgetOverview.activeRuleCount,
+          categoryBudgetFen: this.monthBudgetOverview.categoryBudgetFen
+        })
+        StatisticsBudgetMiniCard({
+          title: '本年预算',
+          iconColor: $r('app.color.color_purple'),
+          totalFen: this.yearBudgetOverview.totalFen,
+          usedFen: this.yearBudgetOverview.usedFen,
+          remainFen: this.yearBudgetOverview.remainFen,
+          percent: this.yearBudgetOverview.percent,
+          activeRuleCount: this.yearBudgetOverview.activeRuleCount,
+          categoryBudgetFen: this.yearBudgetOverview.categoryBudgetFen
+        })
+      }
+      .width('100%')
+    }
+    .width('calc(100% - 36vp)')
+    .padding({ left: 12, right: 12, top: 14, bottom: 14 })
     .backgroundColor($r('app.color.color_card_overlay'))
     .borderRadius(20)
     .border({ width: 1, color: $r('app.color.color_divider') })
@@ -2280,23 +2586,35 @@ export struct StatisticsPage {
           .borderRadius(2)
           .backgroundColor($r('app.color.color_primary'))
           .margin({ right: 8 })
-        Text('支出分类分析')
+        Text(this.categoryCardTitle())
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.color_text_deep'))
         Blank()
-        Text(this.showAllCategories ? '收起' : '查看全部')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .onClick(() => {
-            this.showAllCategories = !this.showAllCategories
-            this.categoryDisplayStats = this.buildCategoryDisplayStats(this.categoryStats, this.expenseTotal)
-          })
-        Image($rawfile('icon_chevron_right.svg'))
-          .width(16)
-          .height(16)
-          .fillColor($r('app.color.color_text_secondary'))
-          .margin({ left: 5 })
+        Row() {
+          Text('占比')
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.color_white'))
+            .height(30)
+            .layoutWeight(1)
+            .textAlign(TextAlign.Center)
+            .borderRadius(15)
+            .backgroundColor($r('app.color.color_primary'))
+          Text('排行')
+            .fontSize(13)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.color_text_secondary'))
+            .height(30)
+            .layoutWeight(1)
+            .textAlign(TextAlign.Center)
+        }
+        .width(104)
+        .height(34)
+        .padding(2)
+        .borderRadius(17)
+        .backgroundColor($r('app.color.color_surface'))
+        .border({ width: 1, color: $r('app.color.color_divider') })
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
@@ -2452,14 +2770,15 @@ export struct StatisticsPage {
       .backgroundColor('#F2F7FF')
       .margin({ top: 10 })
 
-      ExpenseTrendCanvas({
-        data: this.trendBars,
-        axisMax: this.trendAxisMax(),
-        statMode: this.statMode,
-        selectedLabel: this.trendSelectionLabel,
-        onGestureActive: (active: boolean) => {
-          this.trendChartGestureActive = active
-        },
+        ExpenseTrendCanvas({
+          data: this.trendBars,
+          axisMax: this.trendAxisMax(),
+          statMode: this.statMode,
+          selectedLabel: this.trendSelectionLabel,
+          emptyText: this.trendEmptyText(),
+          onGestureActive: (active: boolean) => {
+            this.trendChartGestureActive = active
+          },
         onSelect: (label: string, amount: number) => {
           this.showTrendSelection(label, amount)
         }
@@ -2560,7 +2879,7 @@ export struct StatisticsPage {
           .borderRadius(2)
           .backgroundColor($r('app.color.color_primary'))
           .margin({ right: 8 })
-        Text('支出排行榜')
+        Text(this.rankingCardTitle())
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.color_text_deep'))
@@ -2569,7 +2888,9 @@ export struct StatisticsPage {
           .fontSize(12)
           .fontColor($r('app.color.color_text_secondary'))
           .onClick(() => {
-            if (this.statMode === 'year') {
+            if (this.isIncomeMode()) {
+              this.showAllRanking = true
+            } else if (this.statMode === 'year') {
               this.showAllRanking = true
             } else if (this.navStack) {
               AppStorage.setOrCreate<string>('statisticsRankingMonth', this.currentMonth)
@@ -2843,10 +3164,13 @@ export struct StatisticsPage {
 
         Scroll() {
           Column() {
+            this.MetricModeSwitch()
             this.SummaryPanel()
-            this.CategoryCard()
+            if (!this.isIncomeMode()) {
+              this.BudgetOverviewCard()
+            }
             this.TrendCard()
-            this.RankingCard()
+            this.CategoryCard()
           }
           .width('100%')
           .translate({ x: this.slideOffsetX })

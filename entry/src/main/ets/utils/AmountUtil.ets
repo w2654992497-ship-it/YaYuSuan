@@ -21,9 +21,8 @@ export class AmountUtil {
     const display = AmountUtil.fen2Display(fen)
     if (type === 'income') {
       return `+¥${display}`
-    } else {
-      return `-¥${display}`
     }
+    return `-¥${display}`
   }
 
   static shortYuan(fen: number): string {
@@ -31,23 +30,24 @@ export class AmountUtil {
     const yuan = safeFen / 100
     if (yuan >= 10000) {
       return `${(yuan / 10000).toFixed(1)}w`
-    } else if (yuan >= 1000) {
-      return `${(yuan / 1000).toFixed(1)}k`
-    } else if (yuan === Math.floor(yuan)) {
-      return `${yuan}`
-    } else {
-      return yuan.toFixed(1)
     }
+    if (yuan >= 1000) {
+      return `${(yuan / 1000).toFixed(1)}k`
+    }
+    if (yuan === Math.floor(yuan)) {
+      return `${yuan}`
+    }
+    return yuan.toFixed(1)
   }
 
   static shortFormat(fen: number): string {
     const yuan = fen / 100
     if (yuan >= 10000) {
       return `¥${(yuan / 10000).toFixed(1)}w`
-    } else if (yuan >= 1000) {
-      return `¥${(yuan / 1000).toFixed(1)}k`
-    } else {
-      return `¥${yuan.toFixed(2)}`
     }
+    if (yuan >= 1000) {
+      return `¥${(yuan / 1000).toFixed(1)}k`
+    }
+    return `¥${yuan.toFixed(2)}`
   }
 }

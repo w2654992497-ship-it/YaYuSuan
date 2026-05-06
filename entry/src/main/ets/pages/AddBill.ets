@@ -26,12 +26,15 @@ export struct AddBillPage {
   @State isAmountFocused: boolean = false
   @State isRemarkFocused: boolean = false
   @State selectedAccountId: number = 0
-  @State selectedAccountName: string = '\u73b0\u91d1\u94b1\u5305'
+  @State selectedAccountName: string = ''
   @State selectedAccountDesc: string = ''
   @State selectedAccountType: PaymentAccountType = 'cash'
   @State selectedAccountColor: string = '#FF9500'
   @State accountOptionsList: PaymentAccount[] = []
   @State showAccountSheet: boolean = false
+  @State showBalanceWarning: boolean = false
+  @State balanceWarningText: string = ''
+  @State ignoreBalanceWarningOnce: boolean = false
   @State expenseCategories: CategoryRecord[] = []
   @State incomeCategories: CategoryRecord[] = []
   @Watch('onTabChanged')
@@ -105,6 +108,57 @@ export struct AddBillPage {
     this.navStack.pushPathByName('accountCreate', null)
   }
 
+  private selectedAccountDisplayText(): string {
+    if (this.selectedAccountName.length <= 0) {
+      return '选择账户'
+    }
+    if (this.selectedAccountDesc.length > 0) {
+      return this.selectedAccountName + ' · ' + this.selectedAccountDesc
+    }
+    return this.selectedAccountName
+  }
+
+  private async shouldShowBalanceWarning(amount: number): Promise<boolean> {
+    if (this.billType !== 'expense') {
+      return false
+    }
+    if (this.ignoreBalanceWarningOnce) {
+      return false
+    }
+    if (this.selectedAccountId <= 0) {
+      return false
+    }
+    const account = await AppDataApi.getInstance().queryPaymentAccountById(this.selectedAccountId)
+    if (!account) {
+      return false
+    }
+    if (account.balanceUpdatedAt <= 0) {
+      this.balanceWarningText = account.name + ' 还没有设置余额，当前将按余额为 0 继续记录。'
+      return true
+    }
+    if (account.manualBalance <= 0) {
+      this.balanceWarningText = account.name + ' 当前余额为 0，继续记账会让账户余额变为负数。'
+      return true
+    }
+    if (account.manualBalance < amount) {
+      this.balanceWarningText = account.name + ' 当前余额不足，继续记账会让账户余额变为负数。'
+      return true
+    }
+    return false
+  }
+
+  private continueSubmitAfterBalanceWarning(): void {
+    this.showBalanceWarning = false
+    this.ignoreBalanceWarningOnce = true
+    this.submit()
+  }
+
+  private openAccountSettingsFromWarning(): void {
+    this.showBalanceWarning = false
+    this.ignoreBalanceWarningOnce = false
+    this.navStack.pushPathByName('accountSettings', null)
+  }
+
   private async loadAccounts(): Promise<void> {
     try {
       const accounts = await AppDataApi.getInstance().queryEnabledPaymentAccounts()
@@ -125,6 +179,12 @@ export struct AddBillPage {
         this.selectAccount(defaultAccount)
       } else if (accounts.length > 0) {
         this.selectAccount(accounts[0])
+      } else {
+        this.selectedAccountId = 0
+        this.selectedAccountName = ''
+        this.selectedAccountDesc = ''
+        this.selectedAccountType = 'cash'
+        this.selectedAccountColor = '#FF9500'
       }
     } catch (err) {
       LogUtils.error('AddBill', 'loadAccounts: %{public}s', JSON.stringify(err))
@@ -303,6 +363,10 @@ export struct AddBillPage {
           return
         }
       }
+      if (await this.shouldShowBalanceWarning(fen)) {
+        this.showBalanceWarning = true
+        return
+      }
       const categoryRecord = await CategoryDao.getInstance().queryByName(this.selectedCategory, this.billType)
       const categoryId = categoryRecord ? categoryRecord.id : 0
       const hostContext = this.getUIContext().getHostContext()
@@ -329,8 +393,10 @@ export struct AddBillPage {
       this.remark = ''
       this.selectedCategory = ''
       this.selectedDate = DateUtil.today()
+      this.ignoreBalanceWarningOnce = false
       this.activeTabIndex = 0
     } catch (err) {
+      this.ignoreBalanceWarningOnce = false
       try {
         this.getUIContext().getPromptAction().showToast({ message: '保存失败' })
       } catch (_e) {
@@ -536,7 +602,7 @@ export struct AddBillPage {
           Text('账户：')
             .fontSize(13)
             .fontColor($r('app.color.color_text_secondary'))
-          Text(this.selectedAccountDesc.length > 0 ? this.selectedAccountName + ' \u00b7 ' + this.selectedAccountDesc : this.selectedAccountName)
+          Text(this.selectedAccountDisplayText())
             .fontSize(14)
             .fontColor($r('app.color.color_text_deep'))
             .maxLines(1)
@@ -943,6 +1009,75 @@ export struct AddBillPage {
     )
   }
 
+  @Builder
+  BalanceWarningDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Row()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#66000000')
+        .onClick(() => {
+          this.showBalanceWarning = false
+        })
+
+      Column() {
+        Row() {
+          Image($rawfile('icon_help_circle.svg'))
+            .width(22)
+            .height(22)
+            .fillColor($r('app.color.color_primary'))
+            .margin({ right: 8 })
+          Text('账户余额提醒')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.color_text_deep'))
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        Text(this.balanceWarningText)
+          .fontSize(14)
+          .fontColor($r('app.color.color_text_secondary'))
+          .lineHeight(22)
+          .width('100%')
+          .margin({ top: 14 })
+
+        Row({ space: 10 }) {
+          Button('设置余额')
+            .height(44)
+            .layoutWeight(1)
+            .fontSize(15)
+            .fontColor($r('app.color.color_primary'))
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: $r('app.color.color_primary') })
+            .borderRadius(14)
+            .onClick(() => {
+              this.openAccountSettingsFromWarning()
+            })
+          Button('继续记账')
+            .height(44)
+            .layoutWeight(1)
+            .fontSize(15)
+            .fontColor($r('app.color.color_white'))
+            .backgroundColor($r('app.color.color_primary'))
+            .borderRadius(14)
+            .onClick(() => {
+              this.continueSubmitAfterBalanceWarning()
+            })
+        }
+        .width('100%')
+        .margin({ top: 20 })
+      }
+      .width('calc(100% - 56vp)')
+      .padding({ left: 18, right: 18, top: 20, bottom: 18 })
+      .backgroundColor($r('app.color.color_surface'))
+      .borderRadius(20)
+      .shadow({ radius: 20, color: $r('app.color.color_shadow_blue_10'), offsetX: 0, offsetY: 8 })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       WaterPageBg()
@@ -987,6 +1122,10 @@ export struct AddBillPage {
 
       if (this.showAccountSheet) {
         this.AccountSheet()
+      }
+
+      if (this.showBalanceWarning) {
+        this.BalanceWarningDialog()
       }
     }
     .width('100%')

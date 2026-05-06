@@ -6,6 +6,11 @@
       "buildFunction": "BillSearchRouteBuilder"
     },
     {
+      "name": "billDetail",
+      "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
+      "buildFunction": "BillDetailRouteBuilder"
+    },
+    {
       "name": "categoryManage",
       "pageSourceFile": "src/main/ets/routes/AppRouteBuilders.ets",
       "buildFunction": "CategoryManageRouteBuilder"

@@ -2,6 +2,7 @@ import { relationalStore } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, CategoryInfo } from '../model/Category'
+import { DateUtil } from '../utils/DateUtil'
 
 const DOMAIN = 0x0000
 const TAG = 'A1a1'
@@ -160,6 +161,7 @@ export class DBHelper {
       await this.seedDefaultCategories(store, 1)
       await this.backfillBillCategoryIds(store)
       await this.backfillBillPaymentAccounts(store)
+      await this.backfillBillDates(store)
       await this.migrateLegacyBudgets(store)
 
       hilog.info(DOMAIN, TAG, '[DBHelper] 数据库初始化成功')
@@ -180,6 +182,8 @@ export class DBHelper {
     await this.addColumnIfNeeded(store, 'bills', 'paymentAccountId INTEGER NOT NULL DEFAULT 0')
     await this.addColumnIfNeeded(store, 'bills', "paymentAccountName TEXT DEFAULT ''")
     await this.addColumnIfNeeded(store, 'bills', 'categoryId INTEGER NOT NULL DEFAULT 0')
+    await this.addColumnIfNeeded(store, 'bills', "date TEXT NOT NULL DEFAULT ''")
+    await this.addColumnIfNeeded(store, 'bills', 'createdAt INTEGER NOT NULL DEFAULT 0')
     await this.addColumnIfNeeded(store, 'categories', 'userId INTEGER NOT NULL DEFAULT 1')
     await this.addColumnIfNeeded(store, 'categories', 'bookId INTEGER NOT NULL DEFAULT 1')
     await this.addColumnIfNeeded(store, 'period_rules', 'userId INTEGER NOT NULL DEFAULT 1')
@@ -234,6 +238,26 @@ export class DBHelper {
       hilog.info(DOMAIN, TAG, '[DBHelper] 已回填账单支付账户字段')
     } catch (err) {
       hilog.error(DOMAIN, TAG, '[DBHelper] 回填账单支付账户字段失败：%{public}s', JSON.stringify(err))
+    }
+  }
+
+  private async backfillBillDates(store: relationalStore.RdbStore): Promise<void> {
+    try {
+      const rs = await store.querySql('SELECT id, createdAt FROM bills WHERE date = "" OR date IS NULL')
+      let count = 0
+      while (rs.goToNextRow()) {
+        const id = rs.getLong(rs.getColumnIndex('id'))
+        const createdAt = rs.getLong(rs.getColumnIndex('createdAt'))
+        const dateText = createdAt > 0 ? DateUtil.format(new Date(createdAt)) : DateUtil.today()
+        await store.executeSql('UPDATE bills SET date = "' + dateText + '" WHERE id = ' + id.toString())
+        count += 1
+      }
+      rs.close()
+      const now = Date.now()
+      await store.executeSql('UPDATE bills SET createdAt = ' + now.toString() + ' WHERE createdAt <= 0')
+      hilog.info(DOMAIN, TAG, '[DBHelper] 已修复空账单日期 count=%{public}d', count)
+    } catch (err) {
+      hilog.error(DOMAIN, TAG, '[DBHelper] 修复空账单日期失败：%{public}s', JSON.stringify(err))
     }
   }
 
@@ -304,6 +328,7 @@ export class DBHelper {
   private async seedDefaultPaymentAccounts(store: relationalStore.RdbStore, userId: number): Promise<void> {
     try {
       const bookId = await this.ensureDefaultBookForUser(store, userId, '默认')
+      await this.deleteLegacyBankSeedAccounts(store)
       const countResult = await store.querySql('SELECT COUNT(*) as cnt FROM payment_accounts WHERE userId = ' +
         userId.toString() + ' AND bookId = ' + bookId.toString() + ' AND deleted = 0')
       let count = 0
@@ -314,17 +339,36 @@ export class DBHelper {
       if (count > 0) {
         return
       }
-
       const now = Date.now()
-      await this.insertPaymentAccountSeed(store, userId, bookId, '招商银行', 'bank', '招商银行', '2388', '招', '#D71920', 0, 1, now)
-      await this.insertPaymentAccountSeed(store, userId, bookId, '工商银行', 'bank', '工商银行', '1024', '工', '#C1121F', 1, 0, now)
-      await this.insertPaymentAccountSeed(store, userId, bookId, '支付宝', 'alipay', '', '', '支', '#1677FF', 2, 0, now)
-      await this.insertPaymentAccountSeed(store, userId, bookId, '微信支付', 'wechat', '', '', '微', '#16A34A', 3, 0, now)
-      await this.insertPaymentAccountSeed(store, userId, bookId, '现金钱包', 'cash', '', '', '现', '#FF9500', 4, 0, now)
-      hilog.info(DOMAIN, TAG, '[DBHelper] 已初始化默认支付账户 userId=%{public}d bookId=%{public}d', userId, bookId)
+      await this.insertPaymentAccountSeed(store, userId, bookId, '现金钱包', 'cash', 'cash', '#FF9500', 0, 1, now)
+      await this.insertPaymentAccountSeed(store, userId, bookId, '支付宝', 'alipay', 'alipay', '#1677FF', 1, 0, now)
+      await this.insertPaymentAccountSeed(store, userId, bookId, '微信支付', 'wechat', 'wechat', '#16A34A', 2, 0, now)
+      hilog.info(DOMAIN, TAG, '[DBHelper] 已初始化基础支付账户 userId=%{public}d bookId=%{public}d', userId, bookId)
     } catch (err) {
-      hilog.error(DOMAIN, TAG, '[DBHelper] 初始化默认支付账户失败：%{public}s', JSON.stringify(err))
+      hilog.error(DOMAIN, TAG, '[DBHelper] 初始化基础支付账户失败：%{public}s', JSON.stringify(err))
     }
+  }
+
+  private async deleteLegacyBankSeedAccounts(store: relationalStore.RdbStore): Promise<void> {
+    await this.deleteLegacyBankSeedAccount(store, '招商银行', '2388', 0)
+    await this.deleteLegacyBankSeedAccount(store, '工商银行', '1024', 1)
+  }
+
+  private async deleteLegacyBankSeedAccount(
+    store: relationalStore.RdbStore,
+    name: string,
+    tailNumber: string,
+    sortOrder: number
+  ): Promise<void> {
+    const sql = 'UPDATE payment_accounts SET deleted = 1, isDefault = 0, updatedAt = ' + Date.now().toString() +
+      ' WHERE deleted = 0' +
+      ' AND manualBalance = 0' +
+      ' AND sortOrder = ' + sortOrder.toString() +
+      " AND name = '" + name + "'" +
+      " AND type = 'bank'" +
+      " AND tailNumber = '" + tailNumber + "'" +
+      ' AND id NOT IN (SELECT paymentAccountId FROM bills WHERE paymentAccountId > 0)'
+    await store.executeSql(sql)
   }
 
   private async insertPaymentAccountSeed(
@@ -333,8 +377,6 @@ export class DBHelper {
     bookId: number,
     name: string,
     type: string,
-    bankName: string,
-    tailNumber: string,
     iconMark: string,
     color: string,
     sortOrder: number,
@@ -346,13 +388,13 @@ export class DBHelper {
       bookId: bookId,
       name: name,
       type: type,
-      bankName: bankName,
-      tailNumber: tailNumber,
-        iconMark: iconMark,
-        color: color,
-        manualBalance: 0,
-        balanceUpdatedAt: now,
-        sortOrder: sortOrder,
+      bankName: '',
+      tailNumber: '',
+      iconMark: iconMark,
+      color: color,
+      manualBalance: 0,
+      balanceUpdatedAt: 0,
+      sortOrder: sortOrder,
       isDefault: isDefault,
       enabled: 1,
       createdAt: now,

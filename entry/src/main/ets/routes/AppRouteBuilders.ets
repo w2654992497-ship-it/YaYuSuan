@@ -1,4 +1,5 @@
 import { BillSearchPage } from '../pages/BillSearchPage'
+import { BillDetailPage } from '../pages/BillDetailPage'
 import { CategoryManagePage } from '../pages/CategoryManage'
 import { ExpenseRankingAllPage } from '../pages/Statistics'
 import { SettingsPage } from '../pages/Settings'
@@ -7,6 +8,11 @@ import { AccountFormPage } from '../pages/settings/AccountFormPage'
 @Builder
 export function BillSearchRouteBuilder() {
   AppRouteDestination({ routeName: 'billSearch' })
+}
+
+@Builder
+export function BillDetailRouteBuilder() {
+  AppRouteDestination({ routeName: 'billDetail' })
 }
 
 @Builder
@@ -105,6 +111,17 @@ struct AppRouteDestination {
     return 0
   }
 
+  private billDetailId(): number {
+    try {
+      const params = this.navStack.getParamByName('billDetail') as number[]
+      if (params.length > 0) {
+        return params[params.length - 1]
+      }
+    } catch (_err) {
+    }
+    return 0
+  }
+
   private settingsInitialPage(): string {
     if (this.routeName === 'budgetSettings') {
       return 'budget'
@@ -150,6 +167,16 @@ struct AppRouteDestination {
       if (this.routeName === 'billSearch') {
         BillSearchPage({
           onClose: () => {
+            this.navStack.pop()
+          }
+        })
+      } else if (this.routeName === 'billDetail') {
+        BillDetailPage({
+          billId: this.billDetailId(),
+          onBack: () => {
+            this.navStack.pop()
+          },
+          onDeleted: () => {
             this.navStack.pop()
           }
         })

@@ -67,16 +67,21 @@ export class PaymentAccountDao {
   async ensureDefaultAccounts(userId: number, bookId: number): Promise<void> {
     const store = this.getStore()
     const count = await this.countByUserBook(userId, bookId)
-    if (count > 0) {
-      return
-    }
+    const hasDefault = await this.hasDefaultByUserBook(userId, bookId)
     const now = Date.now()
-    await this.insertSeed(store, userId, bookId, '\u62db\u5546\u94f6\u884c', 'bank', '\u62db\u5546\u94f6\u884c', '2388', 'bank', '#D71920', 0, 1, now)
-    await this.insertSeed(store, userId, bookId, '\u5de5\u5546\u94f6\u884c', 'bank', '\u5de5\u5546\u94f6\u884c', '1024', 'bank', '#C1121F', 1, 0, now)
-    await this.insertSeed(store, userId, bookId, '\u652f\u4ed8\u5b9d', 'alipay', '', '', 'alipay', '#1677FF', 2, 0, now)
-    await this.insertSeed(store, userId, bookId, '\u5fae\u4fe1\u652f\u4ed8', 'wechat', '', '', 'wechat', '#16A34A', 3, 0, now)
-    await this.insertSeed(store, userId, bookId, '\u73b0\u91d1\u94b1\u5305', 'cash', '', '', 'cash', '#FF9500', 4, 0, now)
-    LogUtils.info(PAYMENT_ACCOUNT_TAG, '已初始化默认支付账户 userId=%{public}s bookId=%{public}s',
+    const hasCash = await this.existsAccountByType(userId, bookId, 'cash')
+    const hasAlipay = await this.existsAccountByType(userId, bookId, 'alipay')
+    const hasWechat = await this.existsAccountByType(userId, bookId, 'wechat')
+    if (!hasCash) {
+      await this.insertDefaultAccount(store, userId, bookId, '现金钱包', 'cash', 'cash', '#FF9500', 0, count <= 0 || !hasDefault ? 1 : 0, now)
+    }
+    if (!hasAlipay) {
+      await this.insertDefaultAccount(store, userId, bookId, '支付宝', 'alipay', 'alipay', '#1677FF', 1, 0, now)
+    }
+    if (!hasWechat) {
+      await this.insertDefaultAccount(store, userId, bookId, '微信支付', 'wechat', 'wechat', '#16A34A', 2, 0, now)
+    }
+    LogUtils.info(PAYMENT_ACCOUNT_TAG, '已初始化基础支付账户 userId=%{public}s bookId=%{public}s',
       userId.toString(), bookId.toString())
   }
 
@@ -341,6 +346,33 @@ export class PaymentAccountDao {
     return count
   }
 
+  private async hasDefaultByUserBook(userId: number, bookId: number): Promise<boolean> {
+    const rs = await this.getStore().querySql('SELECT COUNT(*) as cnt FROM payment_accounts WHERE userId = ' +
+      userId.toString() + ' AND bookId = ' + bookId.toString() + ' AND deleted = 0 AND enabled = 1 AND isDefault = 1')
+    let count = 0
+    if (rs.goToNextRow()) {
+      count = rs.getLong(rs.getColumnIndex('cnt'))
+    }
+    rs.close()
+    return count > 0
+  }
+
+  private async existsAccountByType(userId: number, bookId: number, type: PaymentAccountType): Promise<boolean> {
+    const predicates = new relationalStore.RdbPredicates('payment_accounts')
+    predicates.equalTo('userId', userId)
+    predicates.equalTo('bookId', bookId)
+    predicates.equalTo('type', type)
+    predicates.equalTo('deleted', 0)
+    predicates.limitAs(1)
+    const rs = await this.getStore().query(predicates, ['id'])
+    let exists = false
+    if (rs.goToNextRow()) {
+      exists = true
+    }
+    rs.close()
+    return exists
+  }
+
   private async clearDefault(store: relationalStore.RdbStore, userId: number, bookId: number): Promise<void> {
     const bucket: relationalStore.ValuesBucket = {
       isDefault: 0,
@@ -377,14 +409,12 @@ export class PaymentAccountDao {
       reason, id.toString(), account.name, account.manualBalance.toString(), amountDelta.toString(), nextBalance.toString())
   }
 
-  private async insertSeed(
+  private async insertDefaultAccount(
     store: relationalStore.RdbStore,
     userId: number,
     bookId: number,
     name: string,
     type: PaymentAccountType,
-    bankName: string,
-    tailNumber: string,
     iconMark: string,
     color: string,
     sortOrder: number,
@@ -396,12 +426,12 @@ export class PaymentAccountDao {
       bookId: bookId,
       name: name,
       type: type,
-      bankName: bankName,
-      tailNumber: tailNumber,
+      bankName: '',
+      tailNumber: '',
       iconMark: iconMark,
       color: color,
       manualBalance: 0,
-      balanceUpdatedAt: now,
+      balanceUpdatedAt: 0,
       sortOrder: sortOrder,
       isDefault: isDefault,
       enabled: 1,

@@ -193,10 +193,10 @@ export struct SettingsPage {
       const yearOverview = await AppDataApi.getInstance().queryBudgetOverview('year')
       const sourceUsages = await AppDataApi.getInstance().queryBudgetRuleUsages()
       this.budgetRuleUsages = sourceUsages
-      this.budgetDayOverview = dayOverview
-      this.budgetMonthOverview = monthOverview
-      this.budgetYearOverview = yearOverview
-      this.budgetOverview = monthOverview
+      this.budgetDayOverview = this.cloneBudgetOverview(dayOverview)
+      this.budgetMonthOverview = this.cloneBudgetOverview(monthOverview)
+      this.budgetYearOverview = this.cloneBudgetOverview(yearOverview)
+      this.budgetOverview = this.cloneBudgetOverview(monthOverview)
       this.budgetRenderVersion += 1
       LogUtils.info(SETTINGS_TAG,
         '预算概览刷新 day=%{public}d/%{public}d hasTotal=%{public}s cat=%{public}d month=%{public}d/%{public}d hasTotal=%{public}s cat=%{public}d year=%{public}d/%{public}d hasTotal=%{public}s cat=%{public}d rules=%{public}d',
@@ -229,6 +229,21 @@ export struct SettingsPage {
       return usageOverview
     }
     return source
+  }
+
+  private cloneBudgetOverview(source: BudgetOverview): BudgetOverview {
+    return {
+      title: source.title,
+      totalFen: source.totalFen,
+      usedFen: source.usedFen,
+      remainFen: source.remainFen,
+      percent: source.percent,
+      activeRuleCount: source.activeRuleCount,
+      hasTotalRule: source.hasTotalRule,
+      categoryBudgetFen: source.categoryBudgetFen,
+      overflow: source.overflow,
+      overflowFen: source.overflowFen
+    }
   }
 
   private buildCurrentMonthBudgetOverviewFromUsages(usages: BudgetRuleUsage[]): BudgetOverview {

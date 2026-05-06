@@ -18,6 +18,7 @@ import { CloudAccountBook } from '../CloudAccountBook'
 import { CloudBill } from '../CloudBill'
 import { CloudCategory } from '../CloudCategory'
 import { CloudPeriodRule } from '../CloudPeriodRule'
+import { CloudBudgetRule } from '../CloudBudgetRule'
 import { CloudUserDataBundle } from '../CloudUserDataBundle'
 import { UserInfo } from '../UserInfo'
 import { LogUtils } from '../utils/LogUtils'
@@ -29,7 +30,7 @@ const CLOUD_DB_OBJECT_BOOK = 'CloudAccountBook'
 const CLOUD_DB_OBJECT_BILL = 'CloudBill'
 const CLOUD_DB_OBJECT_CATEGORY = 'CloudCategory'
 const CLOUD_DB_OBJECT_PERIOD_RULE = 'CloudPeriodRule'
-const CLOUD_DB_OBJECT_BUDGET = 'BudgetRule'
+const CLOUD_DB_OBJECT_BUDGET = 'CloudBudgetRule'
 const CLOUD_DB_OBJECT_USER_DATA_BUNDLE = 'CloudUserDataBundle'
 const CLOUD_DB_QUERY_TIMEOUT_MS = 12000
 
@@ -171,6 +172,7 @@ export class CloudDatabaseService {
     const cloudBills = this.buildCloudBills(userKey, bookKey, bills)
     const cloudCategories = this.buildCloudCategories(userKey, bookKey, categories)
     const cloudPeriodRules = this.buildCloudPeriodRules(userKey, bookKey, periodRules)
+    const cloudBudgetRules = this.buildCloudBudgetRules(userKey, bookKey, budgetRules)
     const dataBundle = this.buildCloudUserDataBundle(userKey, bookKey, book, categories, paymentAccounts, periodRules, budgetRules)
 
     try {
@@ -181,13 +183,24 @@ export class CloudDatabaseService {
       const categoryCount = dataBundle.categoryCount
       const accountCount = dataBundle.accountCount
       const periodRuleCount = dataBundle.periodRuleCount
-      const budgetCount = dataBundle.budgetCount
+      let budgetCount = dataBundle.budgetCount
+      try {
+        if (cloudBudgetRules.length > 0) {
+          budgetCount = await this.traceUpsertBudgetRules(traceId, cloudBudgetRules)
+        } else {
+          this.logSkipEmpty(traceId, CLOUD_DB_OBJECT_BUDGET, cloudBudgetRules.length)
+        }
+      } catch (budgetErr) {
+        LogUtils.error(CLOUD_DB_TAG,
+          '云数据库预算规则独立表同步失败，已保留数据包预算快照 trace=%{public}s error=%{public}s',
+          traceId, this.formatError(budgetErr))
+      }
       this.logSkipEmpty(traceId, CLOUD_DB_OBJECT_BILL, cloudBills.length)
       this.logBundleMode(traceId, CLOUD_DB_OBJECT_BOOK, cloudBook.cloudId)
       this.logBundleMode(traceId, CLOUD_DB_OBJECT_CATEGORY, cloudCategories.length.toString())
       this.logBundleMode(traceId, 'PaymentAccount', paymentAccounts.length.toString())
       this.logBundleMode(traceId, CLOUD_DB_OBJECT_PERIOD_RULE, cloudPeriodRules.length.toString())
-      this.logBundleMode(traceId, CLOUD_DB_OBJECT_BUDGET, budgetRules.length.toString())
+      this.logBundleMode(traceId, 'BudgetRuleJson', budgetRules.length.toString())
       LogUtils.info(CLOUD_DB_TAG,
         '云数据库同步完成 trace=%{public}s costMs=%{public}s user=%{public}s book=%{public}s bill=%{public}s category=%{public}s account=%{public}s periodRule=%{public}s budget=%{public}s',
         traceId, (Date.now() - startAt).toString(), userCount.toString(), bookCount.toString(),
@@ -370,6 +383,16 @@ export class CloudDatabaseService {
       await PaymentAccountDao.getInstance().ensureDefaultAccounts(userLocalId, book.id)
       accountCount = 0
     }
+    if (budgetCount === 0) {
+      try {
+        const cloudBudgetRules = await this.traceQueryBudgetRulesByBook(traceId, accountId, cloudBookId)
+        budgetCount = await this.restoreBudgetRulesFromCloudRows(userLocalId, book.id, cloudBudgetRules, categoryMappings)
+      } catch (budgetErr) {
+        LogUtils.error(CLOUD_DB_TAG,
+          '云数据库预算规则独立表恢复失败，继续使用数据包结果 trace=%{public}s error=%{public}s',
+          traceId, this.formatError(budgetErr))
+      }
+    }
     const cloudBills = await this.traceQueryBillsByBook(traceId, accountId, cloudBookId)
     const billCount = await this.restoreBills(userLocalId, book.id, cloudBills, categoryMappings, accountMappings)
     await CategoryDao.getInstance().refreshCache()
@@ -415,8 +438,18 @@ export class CloudDatabaseService {
       periodRuleCount = bundle.periodRuleCount
       budgetCount = bundle.budgetCount
     }
+    try {
+      const budgetRows = await this.traceQueryBudgetRulesByBook(traceId, userKey, bookKey)
+      if (budgetRows.length > 0 || budgetCount === 0) {
+        budgetCount = budgetRows.length
+      }
+    } catch (budgetErr) {
+      LogUtils.error(CLOUD_DB_TAG,
+        '云数据库预算规则独立表数量查询失败，继续使用数据包数量 trace=%{public}s error=%{public}s',
+        traceId, this.formatError(budgetErr))
+    }
     LogUtils.info(CLOUD_DB_TAG,
-      '浜戞暟鎹簱鏁伴噺鏌ヨ瀹屾垚 trace=%{public}s costMs=%{public}s user=%{public}s book=%{public}s bill=%{public}s category=%{public}s account=%{public}s periodRule=%{public}s budget=%{public}s',
+      '云数据库数量查询完成 trace=%{public}s costMs=%{public}s user=%{public}s book=%{public}s bill=%{public}s category=%{public}s account=%{public}s periodRule=%{public}s budget=%{public}s',
       traceId, (Date.now() - startAt).toString(), users.length.toString(), bookCount.toString(),
       bills.length.toString(), categoryCount.toString(), accountCount.toString(), periodRuleCount.toString(), budgetCount.toString())
     return {
@@ -450,7 +483,7 @@ export class CloudDatabaseService {
     }
     const completed = percent >= 100
     LogUtils.info(CLOUD_DB_TAG,
-      '浜戞暟鎹簱瀹屾暣搴?trace=%{public}s local(user=%{public}s,book=%{public}s,bill=%{public}s,category=%{public}s,account=%{public}s,period=%{public}s,budget=%{public}s) cloud(user=%{public}s,book=%{public}s,bill=%{public}s,category=%{public}s,account=%{public}s,period=%{public}s,budget=%{public}s) percent=%{public}s completed=%{public}s',
+      '云数据库完整度 trace=%{public}s local(user=%{public}s,book=%{public}s,bill=%{public}s,category=%{public}s,account=%{public}s,period=%{public}s,budget=%{public}s) cloud(user=%{public}s,book=%{public}s,bill=%{public}s,category=%{public}s,account=%{public}s,period=%{public}s,budget=%{public}s) percent=%{public}s completed=%{public}s',
       traceId, localCounts.userCount.toString(), localCounts.bookCount.toString(), localCounts.billCount.toString(),
       localCounts.categoryCount.toString(), localCounts.accountCount.toString(), localCounts.periodRuleCount.toString(), localCounts.budgetCount.toString(),
       cloudCounts.userCount.toString(), cloudCounts.bookCount.toString(), cloudCounts.billCount.toString(),
@@ -481,7 +514,7 @@ export class CloudDatabaseService {
     const book = await AccountBookDao.getInstance().ensureDefaultBookForUser(userLocalId, '')
     const bill = new CloudBill()
     bill.cloudId = this.buildCloudId(book.cloudId, 'bill', billLocalId)
-    LogUtils.info(CLOUD_DB_TAG, '浜戞暟鎹簱鍒犻櫎璐﹀崟 trace=%{public}s cloudId=%{public}s', traceId, bill.cloudId)
+    LogUtils.info(CLOUD_DB_TAG, '云数据库删除账单 trace=%{public}s cloudId=%{public}s', traceId, bill.cloudId)
     return await this.zone.delete<CloudBill>(bill)
   }
 
@@ -510,7 +543,7 @@ export class CloudDatabaseService {
       exists.updatedAt = now
       await this.traceUpsertUser(traceId, exists)
       LogUtils.info(CLOUD_DB_TAG,
-        '浜戞暟鎹簱宸蹭负缂哄皯瀵嗙爜鐨勮处鍙疯ˉ鍐欏瘑鐮佸瓧娈?trace=%{public}s username=%{public}s cloudId=%{public}s',
+        '云数据库已为缺少密码的账号补写密码字段 trace=%{public}s username=%{public}s cloudId=%{public}s',
         traceId, username, exists.cloudId)
       return exists
     }
@@ -664,6 +697,37 @@ export class CloudDatabaseService {
     return result
   }
 
+  private buildCloudBudgetRules(userKey: string, bookKey: string, rules: BudgetRule[]): CloudBudgetRule[] {
+    const result: CloudBudgetRule[] = []
+    for (let i = 0; i < rules.length; i++) {
+      const source = rules[i]
+      const item = new CloudBudgetRule()
+      item.cloudId = bookKey + '_budgetRule_' + source.id
+      item.accountId = userKey
+      item.userId = userKey
+      item.bookId = bookKey
+      item.ruleId = source.id
+      item.name = source.name
+      item.periodType = source.periodType
+      item.scopeType = source.scopeType
+      item.amount = source.amount
+      item.categoryIdsJson = source.categoryIdsJson
+      item.categoryNamesJson = source.categoryNamesJson
+      item.dateMode = source.dateMode
+      item.periodValue = source.periodValue
+      item.startDay = source.startDay
+      item.endDay = source.endDay
+      item.compareMode = source.compareMode
+      item.status = source.status
+      item.enabled = source.enabled
+      item.createdAt = source.createdAt
+      item.updatedAt = source.updatedAt
+      item.deleted = source.deleted
+      result.push(item)
+    }
+    return result
+  }
+
   private async queryLocalCounts(userLocalId: number): Promise<CloudDatabaseSyncResult> {
     await AccountBookDao.getInstance().ensureDefaultBookForUser(userLocalId, '')
     const filter: FilterOptions = { month: '', type: 'all', category: '' }
@@ -702,6 +766,10 @@ export class CloudDatabaseService {
 
   private async traceUpsertPeriodRules(traceId: string, periodRules: CloudPeriodRule[]): Promise<number> {
     return await this.traceUpsertMany<CloudPeriodRule>(traceId, CLOUD_DB_OBJECT_PERIOD_RULE, periodRules)
+  }
+
+  private async traceUpsertBudgetRules(traceId: string, budgetRules: CloudBudgetRule[]): Promise<number> {
+    return await this.traceUpsertMany<CloudBudgetRule>(traceId, CLOUD_DB_OBJECT_BUDGET, budgetRules)
   }
 
   private async traceUpsertUserDataBundle(traceId: string, bundle: CloudUserDataBundle): Promise<number> {
@@ -791,6 +859,15 @@ export class CloudDatabaseService {
     return result
   }
 
+  private async traceQueryBudgetRulesByBook(traceId: string, userKey: string, bookKey: string): Promise<CloudBudgetRule[]> {
+    const result = await this.zone.query<CloudBudgetRule>(
+      new cloudDatabase.DatabaseQuery<CloudBudgetRule>(CloudBudgetRule).equalTo('accountId', userKey).equalTo('bookId', bookKey).equalTo('deleted', 0)
+    )
+    this.logQueryCount(traceId, CLOUD_DB_OBJECT_BUDGET, result.length)
+    this.logRawBudgetRules(traceId, 'traceQueryBudgetRulesByBook', result)
+    return result
+  }
+
   private async restoreBills(
     userLocalId: number,
     bookLocalId: number,
@@ -845,11 +922,11 @@ export class CloudDatabaseService {
       }
       await store.insert('bills', bucket)
       LogUtils.info(CLOUD_DB_TAG,
-        '浜戞暟鎹簱鎭㈠鏈湴璐﹀崟鎴愬姛 userLocalId=%{public}s bookLocalId=%{public}s cloudId=%{public}s localId=%{public}s amount=%{public}s category=%{public}s date=%{public}s',
+        '云数据库恢复本地账单成功 userLocalId=%{public}s bookLocalId=%{public}s cloudId=%{public}s localId=%{public}s amount=%{public}s category=%{public}s date=%{public}s',
         userLocalId.toString(), bookLocalId.toString(), source.cloudId, source.localId.toString(),
         source.amount.toString(), source.category, source.date)
       LogUtils.info(CLOUD_DB_TAG,
-        '浜戞暟鎹簱鎭㈠璐﹀崟鍒嗙被鏄犲皠 cloudId=%{public}s sourceCategoryLocalId=%{public}s restoredCategoryId=%{public}s sourcePaymentAccountLocalId=%{public}s restoredPaymentAccountId=%{public}s',
+        '云数据库恢复账单分类映射 cloudId=%{public}s sourceCategoryLocalId=%{public}s restoredCategoryId=%{public}s sourcePaymentAccountLocalId=%{public}s restoredPaymentAccountId=%{public}s',
         source.cloudId, sourceCategoryId.toString(), categoryId.toString(), sourcePaymentAccountId.toString(),
         paymentAccountId.toString())
       count += 1
@@ -882,7 +959,7 @@ export class CloudDatabaseService {
         type: source.type
       })
     }
-    LogUtils.info(CLOUD_DB_TAG, '浜戞暟鎹簱鎭㈠鍒嗙被瀹屾垚 userLocalId=%{public}s bookLocalId=%{public}s count=%{public}s',
+    LogUtils.info(CLOUD_DB_TAG, '云数据库恢复分类完成 userLocalId=%{public}s bookLocalId=%{public}s count=%{public}s',
       userLocalId.toString(), bookLocalId.toString(), mappings.length.toString())
     return mappings
   }
@@ -894,7 +971,7 @@ export class CloudDatabaseService {
   ): Promise<PaymentAccountIdMapping[]> {
     if (jsonText.length === 0) {
       await PaymentAccountDao.getInstance().ensureDefaultAccounts(userLocalId, bookLocalId)
-      LogUtils.info(CLOUD_DB_TAG, '浜戞暟鎹簱璐︽埛鏁扮粍涓虹┖锛屽凡淇濈暀/鍒濆鍖栭粯璁よ处鎴?userLocalId=%{public}s bookLocalId=%{public}s',
+      LogUtils.info(CLOUD_DB_TAG, '云数据库账户数组为空，已保留或初始化默认账户 userLocalId=%{public}s bookLocalId=%{public}s',
         userLocalId.toString(), bookLocalId.toString())
       return []
     }
@@ -935,7 +1012,7 @@ export class CloudDatabaseService {
       })
     }
     await PaymentAccountDao.getInstance().ensureDefaultAccounts(userLocalId, bookLocalId)
-    LogUtils.info(CLOUD_DB_TAG, '浜戞暟鎹簱鎭㈠璐︽埛瀹屾垚 userLocalId=%{public}s bookLocalId=%{public}s count=%{public}s',
+    LogUtils.info(CLOUD_DB_TAG, '云数据库恢复账户完成 userLocalId=%{public}s bookLocalId=%{public}s count=%{public}s',
       userLocalId.toString(), bookLocalId.toString(), mappings.length.toString())
     return mappings
   }
@@ -985,6 +1062,43 @@ export class CloudDatabaseService {
     return await BudgetRuleDao.getInstance().replaceAllForUserBook(userLocalId, bookLocalId, nextRules)
   }
 
+  private async restoreBudgetRulesFromCloudRows(
+    userLocalId: number,
+    bookLocalId: number,
+    rows: CloudBudgetRule[],
+    categoryMappings: CategoryIdMapping[]
+  ): Promise<number> {
+    const nextRules: BudgetRule[] = []
+    for (let i = 0; i < rows.length; i++) {
+      const source = rows[i]
+      if (source.deleted === 1) {
+        continue
+      }
+      const rule = createEmptyBudgetRule()
+      rule.id = this.safeString(source.ruleId).length > 0 ? source.ruleId : source.cloudId
+      rule.userId = userLocalId
+      rule.bookId = bookLocalId
+      rule.name = this.safeString(source.name).length > 0 ? source.name : '预算规则'
+      rule.periodType = this.safeBudgetPeriodType(source.periodType)
+      rule.scopeType = this.safeBudgetScopeType(source.scopeType)
+      rule.amount = this.safeNumberValue(source.amount)
+      rule.categoryIdsJson = this.safeString(source.categoryIdsJson).length > 0 ? source.categoryIdsJson : '[]'
+      rule.categoryNamesJson = this.safeString(source.categoryNamesJson).length > 0 ? source.categoryNamesJson : '[]'
+      rule.dateMode = this.safeString(source.dateMode).length > 0 ? source.dateMode : 'current'
+      rule.periodValue = this.safeString(source.periodValue)
+      rule.startDay = this.safeNumberValue(source.startDay) > 0 ? this.safeNumberValue(source.startDay) : 1
+      rule.endDay = this.safeNumberValue(source.endDay) > 0 ? this.safeNumberValue(source.endDay) : 31
+      rule.compareMode = this.safeString(source.compareMode).length > 0 ? source.compareMode : 'previous'
+      rule.status = this.safeString(source.status).length > 0 ? source.status : 'active'
+      rule.enabled = source.enabled === 0 ? 0 : 1
+      rule.createdAt = this.safeNumberValue(source.createdAt)
+      rule.updatedAt = this.safeNumberValue(source.updatedAt)
+      rule.deleted = 0
+      nextRules.push(this.remapBudgetRuleCategoryIds(rule, categoryMappings))
+    }
+    return await BudgetRuleDao.getInstance().replaceAllForUserBook(userLocalId, bookLocalId, nextRules)
+  }
+
   private remapBudgetRuleCategoryIds(rule: BudgetRule, categoryMappings: CategoryIdMapping[]): BudgetRule {
     if (rule.scopeType !== 'categories') {
       return rule
@@ -1014,7 +1128,7 @@ export class CloudDatabaseService {
     rule.categoryIdsJson = JSON.stringify(nextIds)
     rule.categoryNamesJson = JSON.stringify(nextNames)
     LogUtils.info(CLOUD_DB_TAG,
-      '浜戞暟鎹簱鎭㈠棰勭畻鍒嗙被鏄犲皠瀹屾垚 ruleId=%{public}s oldCount=%{public}s newCount=%{public}s',
+      '云数据库恢复预算分类映射完成 ruleId=%{public}s oldCount=%{public}s newCount=%{public}s',
       rule.id, oldIds.length.toString(), nextIds.length.toString())
     return rule
   }
@@ -1026,7 +1140,7 @@ export class CloudDatabaseService {
     try {
       return JSON.parse(jsonText) as number[]
     } catch (err) {
-      LogUtils.error(CLOUD_DB_TAG, '瑙ｆ瀽棰勭畻鍒嗙被 ID 鏁扮粍澶辫触锛?{public}s', this.formatError(err))
+      LogUtils.error(CLOUD_DB_TAG, '解析预算分类 ID 数组失败：%{public}s', this.formatError(err))
       return []
     }
   }
@@ -1038,7 +1152,7 @@ export class CloudDatabaseService {
     try {
       return JSON.parse(jsonText) as string[]
     } catch (err) {
-      LogUtils.error(CLOUD_DB_TAG, '瑙ｆ瀽棰勭畻鍒嗙被鍚嶇О鏁扮粍澶辫触锛?{public}s', this.formatError(err))
+      LogUtils.error(CLOUD_DB_TAG, '解析预算分类名称数组失败：%{public}s', this.formatError(err))
       return []
     }
   }
@@ -1100,7 +1214,7 @@ export class CloudDatabaseService {
     const timeoutTask: Promise<T> = new Promise<T>((resolve, reject) => {
       timeoutId = setTimeout(() => {
         LogUtils.error(CLOUD_DB_TAG,
-          '娴滄垶鏆熼幑顔肩氨鐠囬攱鐪扮搾鍛 trace=%{public}s action=%{public}s timeoutMs=%{public}s',
+          '云数据库请求超时 trace=%{public}s action=%{public}s timeoutMs=%{public}s',
           traceId, action, CLOUD_DB_QUERY_TIMEOUT_MS.toString())
         reject(new Error('云数据库请求超时，当前设备可能无法访问 AGC 云数据库。若在模拟器中运行，请优先改用真机测试。'))
       }, CLOUD_DB_QUERY_TIMEOUT_MS)
@@ -1147,7 +1261,7 @@ export class CloudDatabaseService {
     rule.id = source.id !== undefined ? source.id : 'budget_restore_' + Date.now().toString()
     rule.userId = userLocalId
     rule.bookId = bookLocalId
-    rule.name = source.name !== undefined ? source.name : '棰勭畻瑙勫垯'
+    rule.name = source.name !== undefined ? source.name : '预算规则'
     rule.periodType = source.periodType !== undefined ? source.periodType : 'month'
     rule.scopeType = source.scopeType !== undefined ? source.scopeType : 'total'
     rule.amount = source.amount !== undefined ? source.amount : 0
@@ -1238,6 +1352,13 @@ export class CloudDatabaseService {
     for (let i = 0; i < rows.length; i++) {
       LogUtils.error(CLOUD_DB_TAG, '云数据库原始数据 trace=%{public}s action=%{public}s object=%{public}s row=%{public}s data=%{public}s',
         traceId, action, CLOUD_DB_OBJECT_PERIOD_RULE, (i + 1).toString(), this.stringifyPeriodRule(rows[i]))
+    }
+  }
+
+  private logRawBudgetRules(traceId: string, action: string, rows: CloudBudgetRule[]): void {
+    for (let i = 0; i < rows.length; i++) {
+      LogUtils.error(CLOUD_DB_TAG, '云数据库原始数据 trace=%{public}s action=%{public}s object=%{public}s row=%{public}s data=%{public}s',
+        traceId, action, CLOUD_DB_OBJECT_BUDGET, (i + 1).toString(), this.stringifyBudgetRule(rows[i]))
     }
   }
 
@@ -1350,6 +1471,32 @@ export class CloudDatabaseService {
     })
   }
 
+  private stringifyBudgetRule(row: CloudBudgetRule): string {
+    return JSON.stringify({
+      cloudId: row.cloudId,
+      accountId: row.accountId,
+      userId: row.userId,
+      bookId: row.bookId,
+      ruleId: row.ruleId,
+      name: row.name,
+      periodType: row.periodType,
+      scopeType: row.scopeType,
+      amount: row.amount,
+      categoryIdsJson: row.categoryIdsJson,
+      categoryNamesJson: row.categoryNamesJson,
+      dateMode: row.dateMode,
+      periodValue: row.periodValue,
+      startDay: row.startDay,
+      endDay: row.endDay,
+      compareMode: row.compareMode,
+      status: row.status,
+      enabled: row.enabled,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      deleted: row.deleted
+    })
+  }
+
   private logSkipEmpty(traceId: string, objectName: string, count: number): void {
     if (count === 0) {
       LogUtils.info(CLOUD_DB_TAG, '云数据库跳过 trace=%{public}s object=%{public}s reason=本地数据为空',
@@ -1426,6 +1573,20 @@ export class CloudDatabaseService {
     return 'other'
   }
 
+  private safeBudgetPeriodType(value: string | null | undefined): string {
+    if (value === 'day' || value === 'month' || value === 'year') {
+      return value
+    }
+    return 'month'
+  }
+
+  private safeBudgetScopeType(value: string | null | undefined): string {
+    if (value === 'categories') {
+      return 'categories'
+    }
+    return 'total'
+  }
+
   private defaultPaymentAccountName(type: PaymentAccountType): string {
     if (type === 'bank') {
       return '银行卡'
@@ -1434,12 +1595,12 @@ export class CloudDatabaseService {
       return '支付宝'
     }
     if (type === 'wechat') {
-      return '寰俊鏀粯'
+      return '微信支付'
     }
     if (type === 'cash') {
-      return '鐜伴噾閽卞寘'
+      return '现金钱包'
     }
-    return '鍏朵粬璐︽埛'
+    return '其他账户'
   }
 
   private defaultPaymentAccountColor(type: PaymentAccountType): string {

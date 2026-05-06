@@ -34,7 +34,7 @@ export class DateUtil {
     }
     const month = parseInt(parts[1], 10)
     const day = parseInt(parts[2], 10)
-    const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+    const weekDays: string[] = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
     const d = new Date(dateStr)
     const weekDay = weekDays[d.getDay()]
     return `${month}月${day}日 ${weekDay}`
@@ -97,15 +97,15 @@ export class DateUtil {
       date1.getDate() === date2.getDate()
   }
 
-  /**
-   * 将时间戳转换为相对时间描述
-   * 1分钟内 → 刚刚；1小时内 → X分钟前；今天 → HH:mm；昨天 → 昨天 HH:mm；更早 → MM-DD
-   */
   static getRelativeTime(timestamp: number): string {
     const now = Date.now()
     const diff = now - timestamp
-    if (diff < 60000) return '刚刚'
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
+    if (diff < 60000) {
+      return '刚刚'
+    }
+    if (diff < 3600000) {
+      return `${Math.floor(diff / 60000)}分钟前`
+    }
     const date = new Date(timestamp)
     const today = new Date()
     const yesterday = new Date(today.getTime() - 86400000)

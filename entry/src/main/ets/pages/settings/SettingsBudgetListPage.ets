@@ -2,6 +2,249 @@ import { BudgetOverview, createEmptyBudgetOverview } from '../../model/BudgetRul
 import { AmountUtil } from '../../utils/AmountUtil'
 
 @Component
+struct BudgetOverviewMiniCard {
+  @Prop title: string
+  @Prop periodType: string
+  @Prop totalFen: number = 0
+  @Prop usedFen: number = 0
+  @Prop remainFen: number = 0
+  @Prop percent: number = 0
+  @Prop activeRuleCount: number = 0
+  @Prop categoryBudgetFen: number = 0
+
+  private money(fen: number): string {
+    return '¥' + AmountUtil.rawFen2Display(fen)
+  }
+
+  private hasBudget(): boolean {
+    return this.totalFen > 0 || this.categoryBudgetFen > 0 || this.activeRuleCount > 0
+  }
+
+  private displayTotalFen(): number {
+    if (this.totalFen > 0) {
+      return this.totalFen
+    }
+    if (this.categoryBudgetFen > 0) {
+      return this.categoryBudgetFen
+    }
+    return 0
+  }
+
+  private amountText(): string {
+    const totalFen = this.displayTotalFen()
+    if (totalFen <= 0) {
+      return '未设置'
+    }
+    return this.money(totalFen)
+  }
+
+  private remainText(): string {
+    if (this.displayTotalFen() <= 0) {
+      return '--'
+    }
+    return this.money(this.remainFen)
+  }
+
+  private percentText(): string {
+    if (this.displayTotalFen() <= 0) {
+      return '--'
+    }
+    return this.percent.toString() + '%'
+  }
+
+  private progressWidth(): string {
+    if (this.displayTotalFen() <= 0 || this.percent <= 0) {
+      return '0%'
+    }
+    if (this.percent >= 100) {
+      return '100%'
+    }
+    return this.percent.toString() + '%'
+  }
+
+  private color(): ResourceColor {
+    if (this.periodType === 'month') {
+      return '#FF8A00'
+    }
+    if (this.periodType === 'year') {
+      return '#7C3AED'
+    }
+    return '#1765F5'
+  }
+
+  build() {
+    Column() {
+      Row() {
+        Image($rawfile('icon_calendar.svg'))
+          .width(15)
+          .height(15)
+          .fillColor(this.color())
+        Text(this.title)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.color_text_primary'))
+          .margin({ left: 6 })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Text(this.amountText())
+        .fontSize(21)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.hasBudget() ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
+        .width('100%')
+        .margin({ top: 12, bottom: 12 })
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Row() {
+        Text('已用')
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_secondary'))
+        Blank()
+        Text(this.money(this.usedFen))
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .margin({ bottom: 5 })
+
+      Row() {
+        Text('剩余')
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_secondary'))
+        Blank()
+        Text(this.remainText())
+          .fontSize(12)
+          .fontColor(this.color())
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%')
+      .margin({ bottom: 9 })
+
+      Row() {
+        Stack({ alignContent: Alignment.Start }) {
+          Row()
+            .width('100%')
+            .height(6)
+            .borderRadius(4)
+            .backgroundColor($r('app.color.color_track'))
+          Row()
+            .width(this.progressWidth())
+            .height(6)
+            .borderRadius(4)
+            .backgroundColor(this.color())
+        }
+        .layoutWeight(1)
+        .height(6)
+        Text(this.percentText())
+          .fontSize(12)
+          .fontColor($r('app.color.color_text_secondary'))
+          .width(38)
+          .textAlign(TextAlign.End)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+    }
+    .layoutWeight(1)
+    .height(154)
+    .padding({ left: 12, right: 12, top: 13, bottom: 12 })
+    .backgroundColor($r('app.color.color_surface'))
+    .border({ width: 1, color: $r('app.color.color_divider') })
+    .borderRadius(14)
+  }
+}
+
+@Component
+struct BudgetPeriodEntry {
+  @Prop title: string
+  @Prop unit: string
+  @Prop periodType: string
+  @Prop color: ResourceColor
+  @Prop totalFen: number = 0
+  @Prop categoryBudgetFen: number = 0
+  onTap: () => void = (): void => {}
+
+  private money(fen: number): string {
+    return '¥' + AmountUtil.rawFen2Display(fen)
+  }
+
+  private displayTotalFen(): number {
+    if (this.totalFen > 0) {
+      return this.totalFen
+    }
+    if (this.categoryBudgetFen > 0) {
+      return this.categoryBudgetFen
+    }
+    return 0
+  }
+
+  private amountText(): string {
+    const totalFen = this.displayTotalFen()
+    if (totalFen <= 0) {
+      return '未设置'
+    }
+    return this.money(totalFen) + '/' + this.unit
+  }
+
+  private hintText(): string {
+    if (this.categoryBudgetFen <= 0) {
+      return '可选分类分配'
+    }
+    return '已分配 ' + this.money(this.categoryBudgetFen)
+  }
+
+  build() {
+    Row() {
+      Row() {
+        Image($rawfile('icon_calendar.svg'))
+          .width(22)
+          .height(22)
+          .fillColor(this.color)
+      }
+      .width(46)
+      .height(46)
+      .borderRadius(23)
+      .backgroundColor($r('app.color.color_selected_bg'))
+      .justifyContent(FlexAlign.Center)
+      .margin({ right: 14 })
+
+      Column() {
+        Text(this.title)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.color_text_primary'))
+        Text(this.hintText())
+          .fontSize(13)
+          .fontColor($r('app.color.color_text_secondary'))
+          .margin({ top: 4 })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+
+      Text(this.amountText())
+        .fontSize(16)
+        .fontColor($r('app.color.color_text_primary'))
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .margin({ right: 10 })
+
+      Image($rawfile('icon_chevron_right.svg'))
+        .width(16)
+        .height(16)
+        .fillColor($r('app.color.color_text_muted'))
+    }
+    .width('100%')
+    .height(80)
+    .alignItems(VerticalAlign.Center)
+    .onClick(this.onTap)
+  }
+}
+
+@Component
 export struct SettingsBudgetListPage {
   @Prop sbHeight: number
   @Prop dayOverview: BudgetOverview = createEmptyBudgetOverview()
@@ -50,23 +293,6 @@ export struct SettingsBudgetListPage {
       return '--'
     }
     return this.money(overview.remainFen)
-  }
-
-  private percentText(overview: BudgetOverview): string {
-    if (this.displayTotalFen(overview) <= 0) {
-      return '--'
-    }
-    return overview.percent.toString() + '%'
-  }
-
-  private progressWidth(overview: BudgetOverview): string {
-    if (this.displayTotalFen(overview) <= 0 || overview.percent <= 0) {
-      return '0%'
-    }
-    if (overview.percent >= 100) {
-      return '100%'
-    }
-    return overview.percent.toString() + '%'
   }
 
   private budgetColor(periodType: string): ResourceColor {
@@ -129,97 +355,6 @@ export struct SettingsBudgetListPage {
   }
 
   @Builder
-  Progress(overview: BudgetOverview, color: ResourceColor) {
-    Stack({ alignContent: Alignment.Start }) {
-      Row()
-        .width('100%')
-        .height(6)
-        .borderRadius(4)
-        .backgroundColor($r('app.color.color_track'))
-      Row()
-        .width(this.progressWidth(overview))
-        .height(6)
-        .borderRadius(4)
-        .backgroundColor(color)
-    }
-    .layoutWeight(1)
-    .height(6)
-  }
-
-  @Builder
-  OverviewMiniCard(title: string, overview: BudgetOverview, periodType: string) {
-    Column() {
-      Row() {
-        Image($rawfile('icon_calendar.svg'))
-          .width(15)
-          .height(15)
-          .fillColor(this.budgetColor(periodType))
-        Text(title)
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.color_text_primary'))
-          .margin({ left: 6 })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      Text(this.amountOrUnset(overview))
-        .fontSize(21)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.hasBudget(overview) ? $r('app.color.color_text_primary') : $r('app.color.color_text_secondary'))
-        .width('100%')
-        .margin({ top: 12, bottom: 12 })
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-      Row() {
-        Text('已用')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-        Blank()
-        Text(this.money(overview.usedFen))
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_primary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .width('100%')
-      .margin({ bottom: 5 })
-
-      Row() {
-        Text('剩余')
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-        Blank()
-        Text(this.remainOrUnset(overview))
-          .fontSize(12)
-          .fontColor(this.budgetColor(periodType))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-      }
-      .width('100%')
-      .margin({ bottom: 9 })
-
-      Row() {
-        this.Progress(overview, this.budgetColor(periodType))
-        Text(this.percentText(overview))
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .width(38)
-          .textAlign(TextAlign.End)
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-    }
-    .layoutWeight(1)
-    .height(154)
-    .padding({ left: 12, right: 12, top: 13, bottom: 12 })
-    .backgroundColor($r('app.color.color_surface'))
-    .border({ width: 1, color: $r('app.color.color_divider') })
-    .borderRadius(14)
-  }
-
-  @Builder
   OverviewCard() {
     Column() {
       Row() {
@@ -238,9 +373,36 @@ export struct SettingsBudgetListPage {
       .alignItems(VerticalAlign.Center)
 
       Row({ space: 12 }) {
-        this.OverviewMiniCard('今日预算', this.dayOverview, 'day')
-        this.OverviewMiniCard('本月预算', this.monthOverview, 'month')
-        this.OverviewMiniCard('本年预算', this.yearOverview, 'year')
+        BudgetOverviewMiniCard({
+          title: '今日预算',
+          periodType: 'day',
+          totalFen: this.dayOverview.totalFen,
+          usedFen: this.dayOverview.usedFen,
+          remainFen: this.dayOverview.remainFen,
+          percent: this.dayOverview.percent,
+          activeRuleCount: this.dayOverview.activeRuleCount,
+          categoryBudgetFen: this.dayOverview.categoryBudgetFen
+        })
+        BudgetOverviewMiniCard({
+          title: '本月预算',
+          periodType: 'month',
+          totalFen: this.monthOverview.totalFen,
+          usedFen: this.monthOverview.usedFen,
+          remainFen: this.monthOverview.remainFen,
+          percent: this.monthOverview.percent,
+          activeRuleCount: this.monthOverview.activeRuleCount,
+          categoryBudgetFen: this.monthOverview.categoryBudgetFen
+        })
+        BudgetOverviewMiniCard({
+          title: '本年预算',
+          periodType: 'year',
+          totalFen: this.yearOverview.totalFen,
+          usedFen: this.yearOverview.usedFen,
+          remainFen: this.yearOverview.remainFen,
+          percent: this.yearOverview.percent,
+          activeRuleCount: this.yearOverview.activeRuleCount,
+          categoryBudgetFen: this.yearOverview.categoryBudgetFen
+        })
       }
       .width('100%')
       .margin({ top: 16 })
@@ -308,14 +470,41 @@ export struct SettingsBudgetListPage {
   @Builder
   PeriodSettingsCard() {
     Column() {
-      this.PeriodEntry('icon_calendar.svg', '日预算设置', this.allocationHint(this.dayOverview),
-        this.periodAmountText(this.dayOverview, '天'), 'day', '#1765F5')
+      BudgetPeriodEntry({
+        title: '日预算设置',
+        unit: '天',
+        periodType: 'day',
+        color: '#1765F5',
+        totalFen: this.dayOverview.totalFen,
+        categoryBudgetFen: this.dayOverview.categoryBudgetFen,
+        onTap: () => {
+          this.onBeginEditPeriod('day')
+        }
+      })
       Divider().color($r('app.color.color_divider')).margin({ left: 58 })
-      this.PeriodEntry('icon_calendar.svg', '月预算设置', this.allocationHint(this.monthOverview),
-        this.periodAmountText(this.monthOverview, '月'), 'month', '#7C3AED')
+      BudgetPeriodEntry({
+        title: '月预算设置',
+        unit: '月',
+        periodType: 'month',
+        color: '#7C3AED',
+        totalFen: this.monthOverview.totalFen,
+        categoryBudgetFen: this.monthOverview.categoryBudgetFen,
+        onTap: () => {
+          this.onBeginEditPeriod('month')
+        }
+      })
       Divider().color($r('app.color.color_divider')).margin({ left: 58 })
-      this.PeriodEntry('icon_calendar.svg', '年预算设置', this.allocationHint(this.yearOverview),
-        this.periodAmountText(this.yearOverview, '年'), 'year', '#FF8A00')
+      BudgetPeriodEntry({
+        title: '年预算设置',
+        unit: '年',
+        periodType: 'year',
+        color: '#FF8A00',
+        totalFen: this.yearOverview.totalFen,
+        categoryBudgetFen: this.yearOverview.categoryBudgetFen,
+        onTap: () => {
+          this.onBeginEditPeriod('year')
+        }
+      })
     }
     .width('calc(100% - 32vp)')
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
@@ -330,8 +519,9 @@ export struct SettingsBudgetListPage {
       Text(this.refreshVersion.toString())
         .fontSize(1)
         .fontColor(Color.Transparent)
-        .width(0)
-        .height(0)
+        .opacity(0)
+        .width('100%')
+        .height(1)
       this.Header()
       Scroll(this.budgetScroller) {
         Column() {

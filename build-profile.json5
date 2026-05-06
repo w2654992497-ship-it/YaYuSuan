@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\shadow\\.ohos\\config\\default_Application_Y7vlZpq5NKp_J6tX0Z5004gY7fU3d2f2Km1-hbmgPkc=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B9A95310D868E0028AF3609F450FFE5796BCFE6E9C6B0ED55AB49284DB78B6101524DBA18BAD6A2",
-          "profile": "C:\\Users\\shadow\\.ohos\\config\\default_Application_Y7vlZpq5NKp_J6tX0Z5004gY7fU3d2f2Km1-hbmgPkc=.p7b",
+          "storeFile": "D:/HarmonyTest/XiaoJinYu/Application/P12/YaYuSuanP12.p12",
+          "storePassword": "0000001889C317CFA506A9C139620B632EC3AF6DFD80F56718FF12BC07666F2DF64878BD945E5C89",
+          "keyAlias": "YaYuSuan",
+          "keyPassword": "00000018F6D86713A20C1E5F466E05D97B6E77C0A30FEF815F813EB57675CD98A1D792CCDAEC265E",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\shadow\\.ohos\\config\\default_Application_Y7vlZpq5NKp_J6tX0Z5004gY7fU3d2f2Km1-hbmgPkc=.p12",
-          "storePassword": "0000001B094B4B40AE9B8692120C4CFC077C71382BA0BEA57A415D2B4DC1F78A144DAFDF789C2C5788AE4E"
+          "profile": "D:/HarmonyTest/XiaoJinYu/Application/P12/小金鱼正式Release.p7b",
+          "certpath": "D:/HarmonyTest/XiaoJinYu/Application/P12/小金鱼正式.cer"
         }
       }
     ],

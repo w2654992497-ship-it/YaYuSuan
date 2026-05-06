@@ -1,169 +1,334 @@
 import { AmountUtil } from '../utils/AmountUtil'
 
 @Component
+struct SummaryIconView {
+  @Prop icon: ResourceStr
+  @Prop color: ResourceColor
+
+  build() {
+    Row() {
+      Image(this.icon)
+        .width(15)
+        .height(15)
+        .fillColor(this.color)
+    }
+    .width(28)
+    .height(28)
+    .borderRadius(14)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor($r('app.color.color_soft_blue'))
+  }
+}
+
+@Component
+struct SummaryMetricItem {
+  @Prop title: string
+  @Prop value: string
+  @Prop hint: string
+  @Prop valueColor: ResourceColor = $r('app.color.color_text_deep')
+
+  build() {
+    Column() {
+      Text(this.title)
+        .fontSize(12)
+        .fontColor($r('app.color.color_text_secondary'))
+        .maxLines(1)
+      Text(this.value)
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.valueColor)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .margin({ top: 7 })
+      Text(this.hint)
+        .fontSize(11)
+        .fontColor($r('app.color.color_text_secondary'))
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .margin({ top: 5 })
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
+  }
+}
+
+@Component
+struct BudgetMiniCard {
+  @Prop title: string
+  @Prop icon: ResourceStr
+  @Prop color: ResourceColor
+  @Prop limit: number = 0
+  @Prop spent: number = 0
+
+  private budgetPercent(): number {
+    if (this.limit <= 0) {
+      return 0
+    }
+    const percent = Math.floor((this.spent / this.limit) * 100)
+    return Math.min(999, Math.max(0, percent))
+  }
+
+  private budgetProgressWidth(): string {
+    if (this.limit <= 0) {
+      return '0%'
+    }
+    const percent = Math.floor((this.spent / this.limit) * 100)
+    return `${Math.min(100, Math.max(4, percent))}%`
+  }
+
+  private budgetAmountLabel(): string {
+    if (this.limit <= 0) {
+      return '未设置'
+    }
+    return `¥${AmountUtil.fen2Display(this.limit)}`
+  }
+
+  build() {
+    Column() {
+      Row({ space: 7 }) {
+        SummaryIconView({ icon: this.icon, color: this.color })
+        Column() {
+          Text(this.title)
+            .fontSize(13)
+            .fontColor($r('app.color.color_text_secondary'))
+            .maxLines(1)
+          Text(this.budgetAmountLabel())
+            .fontSize(this.limit > 0 ? 13 : 12)
+            .fontColor(this.limit > 0 ? $r('app.color.color_text_secondary') : $r('app.color.color_text_muted'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 3 })
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      Row() {
+        Text(`已用 ¥${AmountUtil.fen2Display(this.spent)}`)
+          .fontSize(11)
+          .fontColor($r('app.color.color_text_secondary'))
+          .maxLines(1)
+      }
+      .width('100%')
+      .margin({ top: 10 })
+
+      Stack({ alignContent: Alignment.Start }) {
+        Row()
+          .width('100%')
+          .height(5)
+          .borderRadius(3)
+          .backgroundColor($r('app.color.color_track'))
+        Row()
+          .width(this.budgetProgressWidth())
+          .height(5)
+          .borderRadius(3)
+          .backgroundColor(this.color)
+      }
+      .width('100%')
+      .margin({ top: 7 })
+    }
+    .layoutWeight(1)
+    .height(86)
+    .padding({ left: 9, right: 9, top: 10, bottom: 9 })
+    .borderRadius(14)
+    .backgroundColor($r('app.color.color_white'))
+    .border({ width: 1, color: $r('app.color.color_divider') })
+  }
+}
+
+@Component
 export struct SummaryCard {
+  @Prop filterType: string = 'all'
+  @Prop billCount: number = 0
   @Prop income: number = 0
   @Prop expense: number = 0
-  @Prop budgetSpent: number = 0
-  @Prop budgetLimit: number = 0
+  @Prop dayBudgetSpent: number = 0
+  @Prop dayBudgetLimit: number = 0
+  @Prop monthBudgetSpent: number = 0
+  @Prop monthBudgetLimit: number = 0
+  @Prop yearBudgetSpent: number = 0
+  @Prop yearBudgetLimit: number = 0
+  @Prop budgetRefreshVersion: number = 0
+
+  private money(fen: number): string {
+    return `¥${AmountUtil.fen2Display(fen)}`
+  }
+
+  private signedMoney(fen: number): string {
+    if (fen > 0) {
+      return `+${this.money(fen)}`
+    }
+    if (fen < 0) {
+      return `-${this.money(0 - fen)}`
+    }
+    return this.money(0)
+  }
+
+  private balance(): number {
+    return this.income - this.expense
+  }
 
   private budgetRemain(): number {
-    const remain = this.budgetLimit - this.budgetSpent
+    const remain = this.monthBudgetLimit - this.monthBudgetSpent
     if (remain <= 0) {
       return 0
     }
     return remain
   }
 
-  private budgetPercent(): number {
-    if (this.budgetLimit <= 0) {
+  private mainTitle(): string {
+    if (this.filterType === 'expense') {
+      return '本月支出'
+    }
+    if (this.filterType === 'income') {
+      return '本月收入'
+    }
+    return '本月结余'
+  }
+
+  private mainAmount(): string {
+    if (this.filterType === 'expense') {
+      return this.money(this.expense)
+    }
+    if (this.filterType === 'income') {
+      return this.money(this.income)
+    }
+    return this.money(this.balance())
+  }
+
+  private mainColor(): ResourceColor {
+    if (this.filterType === 'income') {
+      return $r('app.color.color_income')
+    }
+    return $r('app.color.color_text_deep')
+  }
+
+  private averageExpense(): number {
+    if (this.billCount <= 0) {
       return 0
     }
-    const percent = Math.floor((this.budgetSpent / this.budgetLimit) * 100)
-    return Math.min(999, Math.max(0, percent))
+    return Math.round(this.expense / this.billCount)
   }
 
-  private budgetProgressWidth(): string {
-    if (this.budgetLimit <= 0) {
-      return '0%'
+  private monthBudgetText(): string {
+    if (this.monthBudgetLimit <= 0) {
+      return '未设置'
     }
-    const percent = Math.floor((this.budgetSpent / this.budgetLimit) * 100)
-    return `${Math.min(100, Math.max(4, percent))}%`
+    return this.money(this.monthBudgetLimit)
   }
 
-  @Builder
-  SummaryIcon(icon: ResourceStr, color: ResourceColor) {
-    Row() {
-      Image(icon)
-        .width(16)
-        .height(16)
-        .fillColor(color)
+  private monthBudgetHint(): string {
+    if (this.monthBudgetLimit <= 0) {
+      return '剩余 --'
     }
-    .width(30)
-    .height(30)
-    .borderRadius(15)
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor($r('app.color.color_white'))
-    .border({ width: 1, color: $r('app.color.color_divider') })
-    .shadow({ radius: 10, color: $r('app.color.color_shadow_blue_08'), offsetX: 0, offsetY: 4 })
-    .margin({ right: 8 })
+    return `剩余 ${this.money(this.budgetRemain())}`
   }
 
   build() {
-    Stack({ alignContent: Alignment.TopEnd }) {
-      Image($rawfile('illustration_fish_bowl.png'))
-        .width(116)
-        .height(82)
-        .objectFit(ImageFit.Contain)
-        .margin({ top: 18, right: 12 })
-        .hitTestBehavior(HitTestMode.None)
+    Column() {
+      Text(this.budgetRefreshVersion.toString())
+        .fontSize(1)
+        .fontColor(Color.Transparent)
+        .opacity(0)
+        .width('100%')
+        .height(1)
 
-      Column() {
-        Text('本月支出')
-          .fontSize(15)
-          .fontColor($r('app.color.color_text_secondary'))
-          .fontWeight(FontWeight.Medium)
-
-        Text(`¥${AmountUtil.fen2Display(this.expense)}`)
-          .fontSize(34)
-          .fontColor($r('app.color.color_text_deep'))
-          .fontWeight(FontWeight.Bolder)
-          .margin({ top: 8 })
-
-        Row() {
-          Row() {
-            this.SummaryIcon($rawfile('icon_tab_bills.svg'), $r('app.color.color_primary'))
-            Column() {
-              Text('收入')
-                .fontSize(12)
-                .fontColor($r('app.color.color_text_secondary'))
-              Text(`¥${AmountUtil.fen2Display(this.income)}`)
-                .fontSize(13)
-                .fontColor($r('app.color.color_text_deep'))
-                .fontWeight(FontWeight.Medium)
-                .margin({ top: 2 })
-            }
-            .alignItems(HorizontalAlign.Start)
-          }
-          .layoutWeight(1)
-          .alignItems(VerticalAlign.Center)
-
-          Divider()
-            .vertical(true)
-            .height(36)
-            .color($r('app.color.color_divider'))
-
-          Row() {
-            this.SummaryIcon($rawfile('icon_tab_stats.svg'), $r('app.color.color_accent'))
-            Column() {
-              Text('预算剩余')
-                .fontSize(12)
-                .fontColor($r('app.color.color_text_secondary'))
-              Text(`¥${AmountUtil.fen2Display(this.budgetRemain())}`)
-                .fontSize(13)
-                .fontColor($r('app.color.color_text_deep'))
-                .fontWeight(FontWeight.Medium)
-                .margin({ top: 2 })
-            }
-            .alignItems(HorizontalAlign.Start)
-          }
-          .layoutWeight(1.25)
-          .alignItems(VerticalAlign.Center)
-          .padding({ left: 10 })
-
-          Divider()
-            .vertical(true)
-            .height(36)
-            .color($r('app.color.color_divider'))
-
-          Column() {
-            Text(`${this.budgetPercent()}%`)
-              .fontSize(19)
-              .fontWeight(FontWeight.Bolder)
-              .fontColor($r('app.color.color_primary'))
-            Text('预算进度')
-              .fontSize(11)
+      Row() {
+        Column() {
+          Row({ space: 7 }) {
+            Text(this.mainTitle())
+              .fontSize(15)
               .fontColor($r('app.color.color_text_secondary'))
-              .margin({ top: 2 })
+              .fontWeight(FontWeight.Medium)
+            Image($rawfile('icon_help_circle.svg'))
+              .width(15)
+              .height(15)
+              .fillColor($r('app.color.color_text_secondary'))
           }
-          .width(58)
-          .alignItems(HorizontalAlign.Center)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-        .margin({ top: 16 })
+          .alignItems(VerticalAlign.Center)
 
-        Stack({ alignContent: Alignment.Start }) {
-          Row()
-            .width('100%')
-            .height(5)
-            .borderRadius(3)
-            .backgroundColor($r('app.color.color_track'))
-          Row()
-            .width(this.budgetProgressWidth())
-            .height(5)
-            .borderRadius(3)
-            .backgroundColor($r('app.color.color_primary'))
+          Text(this.mainAmount())
+            .fontSize(40)
+            .fontColor(this.mainColor())
+            .fontWeight(FontWeight.Bolder)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 12 })
         }
-        .width('100%')
-        .margin({ top: 14 })
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
 
-        Text(`已用 ¥${AmountUtil.fen2Display(this.budgetSpent)} / 预算 ¥${AmountUtil.fen2Display(this.budgetLimit)}`)
-          .fontSize(12)
-          .fontColor($r('app.color.color_text_secondary'))
-          .margin({ top: 8 })
+        SummaryIconView({ icon: $rawfile('icon_account_cash.svg'), color: $r('app.color.color_primary') })
       }
       .width('100%')
-      .height('100%')
-      .alignItems(HorizontalAlign.Start)
-      .padding({ left: 18, right: 18, top: 20, bottom: 16 })
+      .alignItems(VerticalAlign.Center)
+
+      if (this.filterType === 'expense') {
+        Row() {
+          SummaryMetricItem({ title: '日均支出', value: this.money(this.averageExpense()), hint: '较上月 --' })
+          Divider().vertical(true).height(42).color($r('app.color.color_divider')).margin({ left: 8, right: 8 })
+          SummaryMetricItem({ title: '支出笔数', value: this.billCount.toString() + ' 笔', hint: '较上月 --' })
+          Divider().vertical(true).height(42).color($r('app.color.color_divider')).margin({ left: 8, right: 8 })
+          SummaryMetricItem({ title: '本月预算', value: this.monthBudgetText(), hint: this.monthBudgetHint() })
+        }
+        .width('100%')
+        .margin({ top: 18 })
+      } else if (this.filterType === 'income') {
+        Row() {
+          SummaryMetricItem({ title: '收入笔数', value: this.billCount.toString() + ' 个', hint: '较上月 --' })
+          Divider().vertical(true).height(42).color($r('app.color.color_divider')).margin({ left: 8, right: 8 })
+          SummaryMetricItem({ title: '本月结余', value: this.money(this.balance()), hint: '较上月 --' })
+          Divider().vertical(true).height(42).color($r('app.color.color_divider')).margin({ left: 8, right: 8 })
+          SummaryMetricItem({ title: '本月预算', value: this.monthBudgetText(), hint: this.monthBudgetHint() })
+        }
+        .width('100%')
+        .margin({ top: 18 })
+      } else {
+        Row() {
+          SummaryMetricItem({ title: '收入', value: this.money(this.income), hint: '较上月 --', valueColor: $r('app.color.color_income') })
+          Divider().vertical(true).height(42).color($r('app.color.color_divider')).margin({ left: 8, right: 8 })
+          SummaryMetricItem({ title: '支出', value: this.money(this.expense), hint: '较上月 --' })
+          Divider().vertical(true).height(42).color($r('app.color.color_divider')).margin({ left: 8, right: 8 })
+          SummaryMetricItem({ title: '结余', value: this.signedMoney(this.balance()), hint: '较上月 --', valueColor: this.balance() < 0 ? $r('app.color.color_expense') : $r('app.color.color_text_deep') })
+        }
+        .width('100%')
+        .margin({ top: 18 })
+      }
+
+      Row({ space: 10 }) {
+        BudgetMiniCard({
+          title: '今日预算',
+          icon: $rawfile('icon_calendar.svg'),
+          color: $r('app.color.color_primary'),
+          limit: this.dayBudgetLimit,
+          spent: this.dayBudgetSpent
+        })
+        BudgetMiniCard({
+          title: '本月预算',
+          icon: $rawfile('icon_tab_bills.svg'),
+          color: $r('app.color.color_accent_deep'),
+          limit: this.monthBudgetLimit,
+          spent: this.monthBudgetSpent
+        })
+        BudgetMiniCard({
+          title: '本年预算',
+          icon: $rawfile('icon_tab_stats.svg'),
+          color: $r('app.color.color_purple'),
+          limit: this.yearBudgetLimit,
+          spent: this.yearBudgetSpent
+        })
+      }
+      .width('100%')
+      .margin({ top: 18 })
     }
-    .width('calc(100% - 48vp)')
-    .height(190)
+    .width('calc(100% - 32vp)')
+    .padding({ left: 18, right: 18, top: 18, bottom: 18 })
     .backgroundColor($r('app.color.color_card_overlay'))
     .borderRadius(22)
     .border({ width: 1, color: $r('app.color.color_divider') })
     .shadow({ radius: 14, color: $r('app.color.color_shadow_blue_09'), offsetX: 0, offsetY: 6 })
-    .margin({ left: 24, right: 24, top: 12, bottom: 10 })
+    .margin({ left: 16, right: 16, top: 10, bottom: 8 })
   }
 }

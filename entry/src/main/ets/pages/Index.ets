@@ -494,29 +494,29 @@ struct Index {
             this.authMessage = ''
           })
 
-        Button(this.userInfoQueryBusy ? '查询中...' : '测试查询 UserInfo 全表')
-          .width('100%')
-          .height(40)
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-          .backgroundColor($r('app.color.color_bg'))
-          .borderRadius(20)
-          .margin({ top: 6 })
-          .onClick(() => {
-            this.queryAllUserInfoForDebug()
-          })
+        // Button(this.userInfoQueryBusy ? '查询中...' : '测试查询 UserInfo 全表')
+        //   .width('100%')
+        //   .height(40)
+        //   .fontSize(13)
+        //   .fontColor($r('app.color.color_text_primary'))
+        //   .backgroundColor($r('app.color.color_bg'))
+        //   .borderRadius(20)
+        //   .margin({ top: 6 })
+        //   .onClick(() => {
+        //     this.queryAllUserInfoForDebug()
+        //   })
 
-        Button(this.userInfoWriteBusy ? '写入中...' : '测试写入 UserInfo')
-          .width('100%')
-          .height(40)
-          .fontSize(13)
-          .fontColor($r('app.color.color_text_primary'))
-          .backgroundColor($r('app.color.color_bg'))
-          .borderRadius(20)
-          .margin({ top: 6 })
-          .onClick(() => {
-            this.upsertTestUserInfoForDebug()
-          })
+        // Button(this.userInfoWriteBusy ? '写入中...' : '测试写入 UserInfo')
+        //   .width('100%')
+        //   .height(40)
+        //   .fontSize(13)
+        //   .fontColor($r('app.color.color_text_primary'))
+        //   .backgroundColor($r('app.color.color_bg'))
+        //   .borderRadius(20)
+        //   .margin({ top: 6 })
+        //   .onClick(() => {
+        //     this.upsertTestUserInfoForDebug()
+        //   })
 
         if (this.userInfoQueryResult.length > 0) {
           Text(this.userInfoQueryResult)

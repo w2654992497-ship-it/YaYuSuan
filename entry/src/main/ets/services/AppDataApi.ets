@@ -43,7 +43,7 @@ export class AppDataApi {
 
   async addBill(context: common.BaseContext | null, bill: Bill, syncCloud: boolean): Promise<number> {
     const rowId = await BillDao.getInstance().insert(bill)
-    this.notifyAccountChanged('addBill')
+    this.notifyBillChanged('addBill')
     LogUtils.info(APP_DATA_API_TAG, '账单接口-新增账单成功 rowId=%{public}s syncCloud=%{public}s',
       rowId.toString(), syncCloud.toString())
     if (syncCloud) {
@@ -54,11 +54,25 @@ export class AppDataApi {
 
   async deleteBill(id: number, context: common.BaseContext | null, syncCloud: boolean): Promise<void> {
     await BillDao.getInstance().deleteById(id)
-    this.notifyAccountChanged('deleteBill')
+    this.notifyBillChanged('deleteBill')
     LogUtils.info(APP_DATA_API_TAG, '账单接口-删除账单成功 id=%{public}s syncCloud=%{public}s',
       id.toString(), syncCloud.toString())
     if (syncCloud) {
       await this.syncCloudAfterLocalChanged(context, 'deleteBill', id)
+    }
+  }
+
+  async queryBillById(id: number): Promise<Bill | null> {
+    return await BillDao.getInstance().queryById(id)
+  }
+
+  async updateBill(context: common.BaseContext | null, bill: Bill, syncCloud: boolean): Promise<void> {
+    await BillDao.getInstance().update(bill)
+    this.notifyBillChanged('updateBill')
+    LogUtils.info(APP_DATA_API_TAG, '账单接口-更新账单成功 id=%{public}s syncCloud=%{public}s',
+      bill.id.toString(), syncCloud.toString())
+    if (syncCloud) {
+      await this.syncCloudAfterLocalChanged(context, 'updateBill', bill.id)
     }
   }
 
@@ -312,7 +326,7 @@ export class AppDataApi {
   async generateDueBills(context: common.BaseContext | null, syncCloud: boolean): Promise<number> {
     const count = await PeriodRuleDao.getInstance().generateDueBills()
     if (count > 0) {
-      this.notifyAccountChanged('generateDueBills')
+      this.notifyBillChanged('generateDueBills')
     }
     if (count > 0 && syncCloud) {
       await this.syncCloudAfterLocalChanged(context, 'generateDueBills', count)
@@ -431,6 +445,14 @@ export class AppDataApi {
       }
       LogUtils.info(APP_DATA_API_TAG, '本地变更后云同步开始 action=%{public}s targetId=%{public}s userLocalId=%{public}s username=%{public}s',
         action, targetId.toString(), session.id.toString(), session.username)
+      if (action === 'deleteBill') {
+        try {
+          await CloudDatabaseService.getInstance().deleteBill(session.id, targetId)
+        } catch (deleteErr) {
+          LogUtils.error(APP_DATA_API_TAG, '云端删除账单失败，继续同步本地数据 action=%{public}s targetId=%{public}s error=%{public}s',
+            action, targetId.toString(), this.formatError(deleteErr))
+        }
+      }
       const result = await CloudDatabaseService.getInstance().upsertLocalData(session.id, session.username, session.displayName)
       LogUtils.info(APP_DATA_API_TAG,
         '本地变更后云同步完成 action=%{public}s targetId=%{public}s user=%{public}s bundle=%{public}s bill=%{public}s category=%{public}s account=%{public}s periodRule=%{public}s budget=%{public}s',
@@ -455,6 +477,18 @@ export class AppDataApi {
     const nextVersion = version !== undefined ? version + 1 : 1
     AppStorage.setOrCreate<number>('paymentAccountVersion', nextVersion)
     LogUtils.info(APP_DATA_API_TAG, '账户数据版本更新 reason=%{public}s version=%{public}s', reason, nextVersion.toString())
+  }
+
+  private notifyBillChanged(reason: string): void {
+    this.notifyAccountChanged(reason)
+    const billVersion = AppStorage.get<number>('billDataVersion')
+    const nextBillVersion = billVersion !== undefined ? billVersion + 1 : 1
+    AppStorage.setOrCreate<number>('billDataVersion', nextBillVersion)
+    const budgetVersion = AppStorage.get<number>('budgetVersion')
+    const nextBudgetVersion = budgetVersion !== undefined ? budgetVersion + 1 : 1
+    AppStorage.setOrCreate<number>('budgetVersion', nextBudgetVersion)
+    LogUtils.info(APP_DATA_API_TAG, '账单数据版本更新 reason=%{public}s version=%{public}s budgetVersion=%{public}s',
+      reason, nextBillVersion.toString(), nextBudgetVersion.toString())
   }
 
   private notifyBudgetChanged(reason: string): void {

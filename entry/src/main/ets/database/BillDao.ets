@@ -8,6 +8,7 @@ import { DBHelper } from './DBHelper'
 import { AccountBookDao } from './AccountBookDao'
 import { PaymentAccountDao } from './PaymentAccountDao'
 import { getCategoryColor } from '../model/Category'
+import { DateUtil } from '../utils/DateUtil'
 
 export class BillDao {
   private static instance: BillDao | null = null
@@ -37,10 +38,29 @@ export class BillDao {
     return AccountBookDao.getInstance().getCurrentBookId()
   }
 
+  private normalizeBillDate(dateText: string, createdAt: number): string {
+    if (dateText.length > 0) {
+      return dateText
+    }
+    if (createdAt > 0) {
+      return DateUtil.format(new Date(createdAt))
+    }
+    return DateUtil.today()
+  }
+
   async insert(bill: Bill): Promise<number> {
     try {
       const store = this.getStore()
       const paymentAccountId = bill.paymentAccountId === undefined ? 0 : bill.paymentAccountId
+      let paymentAccountName = bill.paymentAccountName === undefined ? '' : bill.paymentAccountName
+      if (paymentAccountName.length <= 0 && paymentAccountId > 0) {
+        const account = await PaymentAccountDao.getInstance().queryById(paymentAccountId)
+        if (account !== null) {
+          paymentAccountName = account.name
+        }
+      }
+      const createdAt = bill.createdAt > 0 ? bill.createdAt : Date.now()
+      const dateText = this.normalizeBillDate(bill.date, createdAt)
       const valueBucket: relationalStore.ValuesBucket = {
         userId: this.getCurrentUserId(),
         bookId: this.getCurrentBookId(),
@@ -49,10 +69,10 @@ export class BillDao {
         category: bill.category,
         categoryId: bill.categoryId,
         paymentAccountId: paymentAccountId,
-        paymentAccountName: bill.paymentAccountName === undefined ? '' : bill.paymentAccountName,
+        paymentAccountName: paymentAccountName,
         remark: bill.remark,
-        date: bill.date,
-        createdAt: bill.createdAt
+        date: dateText,
+        createdAt: createdAt
       }
       const rowId = await store.insert('bills', valueBucket)
       await PaymentAccountDao.getInstance().applyBillBalanceChange(paymentAccountId, bill.type, bill.amount, false)
@@ -84,6 +104,51 @@ export class BillDao {
     }
   }
 
+  async update(bill: Bill): Promise<void> {
+    try {
+      const oldBill = await this.queryById(bill.id)
+      if (oldBill === null) {
+        throw new Error('账单不存在，无法更新')
+      }
+      const store = this.getStore()
+      const paymentAccountId = bill.paymentAccountId === undefined ? 0 : bill.paymentAccountId
+      let paymentAccountName = bill.paymentAccountName === undefined ? '' : bill.paymentAccountName
+      if (paymentAccountName.length <= 0 && paymentAccountId > 0) {
+        const account = await PaymentAccountDao.getInstance().queryById(paymentAccountId)
+        if (account !== null) {
+          paymentAccountName = account.name
+        }
+      }
+      const createdAt = bill.createdAt > 0 ? bill.createdAt : Date.now()
+      const dateText = this.normalizeBillDate(bill.date, createdAt)
+      const valueBucket: relationalStore.ValuesBucket = {
+        amount: bill.amount,
+        type: bill.type,
+        category: bill.category,
+        categoryId: bill.categoryId,
+        paymentAccountId: paymentAccountId,
+        paymentAccountName: paymentAccountName,
+        remark: bill.remark,
+        date: dateText,
+        createdAt: createdAt
+      }
+      const predicates = new relationalStore.RdbPredicates('bills')
+      predicates.equalTo('id', bill.id)
+      predicates.equalTo('userId', this.getCurrentUserId())
+      predicates.equalTo('bookId', this.getCurrentBookId())
+      await store.update(valueBucket, predicates)
+
+      const oldPaymentAccountId = oldBill.paymentAccountId === undefined ? 0 : oldBill.paymentAccountId
+      await PaymentAccountDao.getInstance().applyBillBalanceChange(oldPaymentAccountId, oldBill.type, oldBill.amount, true)
+      await PaymentAccountDao.getInstance().applyBillBalanceChange(paymentAccountId, bill.type, bill.amount, false)
+      LogUtils.info('BillDao', 'Updated bill id=%{public}s oldAccount=%{public}s newAccount=%{public}s',
+        bill.id.toString(), oldPaymentAccountId.toString(), paymentAccountId.toString())
+    } catch (err) {
+      LogUtils.error('BillDao', 'update failed: %{public}s', JSON.stringify(err))
+      throw new Error(String(err))
+    }
+  }
+
   async queryById(id: number): Promise<Bill | null> {
     try {
       const store = this.getStore()
@@ -94,6 +159,8 @@ export class BillDao {
       const resultSet = await store.query(predicates, ['id', 'amount', 'type', 'category', 'categoryId', 'paymentAccountId', 'paymentAccountName', 'remark', 'date', 'createdAt'])
       let bill: Bill | null = null
       if (resultSet.goToNextRow()) {
+        const createdAt = resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+        const dateText = this.normalizeBillDate(resultSet.getString(resultSet.getColumnIndex('date')), createdAt)
         bill = {
           id: resultSet.getLong(resultSet.getColumnIndex('id')),
           amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
@@ -103,8 +170,8 @@ export class BillDao {
           paymentAccountId: resultSet.getLong(resultSet.getColumnIndex('paymentAccountId')),
           paymentAccountName: resultSet.getString(resultSet.getColumnIndex('paymentAccountName')),
           remark: resultSet.getString(resultSet.getColumnIndex('remark')),
-          date: resultSet.getString(resultSet.getColumnIndex('date')),
-          createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+          date: dateText,
+          createdAt: createdAt
         }
       }
       resultSet.close()
@@ -139,6 +206,8 @@ export class BillDao {
       const bills: Bill[] = []
 
       while (resultSet.goToNextRow()) {
+        const createdAt = resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+        const dateText = this.normalizeBillDate(resultSet.getString(resultSet.getColumnIndex('date')), createdAt)
         const bill: Bill = {
           id: resultSet.getLong(resultSet.getColumnIndex('id')),
           amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
@@ -148,8 +217,8 @@ export class BillDao {
           paymentAccountId: resultSet.getLong(resultSet.getColumnIndex('paymentAccountId')),
           paymentAccountName: resultSet.getString(resultSet.getColumnIndex('paymentAccountName')),
           remark: resultSet.getString(resultSet.getColumnIndex('remark')),
-          date: resultSet.getString(resultSet.getColumnIndex('date')),
-          createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+          date: dateText,
+          createdAt: createdAt
         }
         bills.push(bill)
       }
@@ -188,6 +257,8 @@ export class BillDao {
       const bills: Bill[] = []
 
       while (resultSet.goToNextRow()) {
+        const createdAt = resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+        const dateText = this.normalizeBillDate(resultSet.getString(resultSet.getColumnIndex('date')), createdAt)
         bills.push({
           id: resultSet.getLong(resultSet.getColumnIndex('id')),
           amount: resultSet.getLong(resultSet.getColumnIndex('amount')),
@@ -197,8 +268,8 @@ export class BillDao {
           paymentAccountId: resultSet.getLong(resultSet.getColumnIndex('paymentAccountId')),
           paymentAccountName: resultSet.getString(resultSet.getColumnIndex('paymentAccountName')),
           remark: resultSet.getString(resultSet.getColumnIndex('remark')),
-          date: resultSet.getString(resultSet.getColumnIndex('date')),
-          createdAt: resultSet.getLong(resultSet.getColumnIndex('createdAt'))
+          date: dateText,
+          createdAt: createdAt
         })
       }
       resultSet.close()
